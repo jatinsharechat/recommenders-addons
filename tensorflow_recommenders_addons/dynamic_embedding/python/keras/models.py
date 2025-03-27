@@ -122,6 +122,8 @@ def _de_keras_save_func(original_save_func,
                                  proc_rank=proc_rank)
   
   def _maybe_save_restrict_policy_params(var, proc_size=1, proc_rank=0):
+    if not hasattr(var, "restrict_policy"):
+      return
     if var.restrict_policy is not None:
       de_var = var.restrict_policy._restrict_var
       _save_de_var(de_var, proc_size=proc_size, proc_rank=proc_rank)

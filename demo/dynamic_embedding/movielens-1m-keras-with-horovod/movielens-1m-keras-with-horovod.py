@@ -29,12 +29,13 @@ def has_horovod() -> bool:
 def config():
   # callback calls hvd.rank() so we need to initialize horovod here
   hvd.init()
+  print("Size: ", hvd.size())
   if has_horovod():
     print("Horovod is enabled.")
     if hvd.rank() > 0:
       os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
     # Horovod: pin GPU to be used to process local rank (one GPU per process)
-    config_gpu(hvd.local_rank())
+    # config_gpu(hvd.local_rank())
   else:
     config_gpu()
 
@@ -460,8 +461,8 @@ class DualChannelsDeepModel(tf.keras.Model):
 def get_dataset(batch_size=1):
   ds = tfds.load("movielens/1m-ratings",
                  split="train",
-                 data_dir="~/dataset",
-                 download=True)
+                 # data_dir="~/dataset",
+                 download=False)
   features = ds.map(
       lambda x: {
           "movie_id":
