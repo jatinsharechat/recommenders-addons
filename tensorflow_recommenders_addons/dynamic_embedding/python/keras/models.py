@@ -63,16 +63,16 @@ def _de_keras_save_func(original_save_func,
                                     name='de_hvd_broadcast_filepath')
 
   call_original_save_func = functools.partial(
-    original_save_func,
-    model=model,
-    filepath=filepath,
-    overwrite=overwrite,
-    include_optimizer=include_optimizer,
-    signatures=signatures,
-    options=options,
-    save_traces=save_traces,
-    *args,
-    **kwargs)
+      original_save_func,
+      model=model,
+      filepath=filepath,
+      overwrite=overwrite,
+      include_optimizer=include_optimizer,
+      signatures=signatures,
+      options=options,
+      save_traces=save_traces,
+      *args,
+      **kwargs)
 
   de_dir = os.path.join(filepath, "variables", "TFRADynamicEmbedding")
 
@@ -88,9 +88,9 @@ def _de_keras_save_func(original_save_func,
         if de_var._saveable_object_creator is None:
           if hvd_rank == 0:
             tf_logging.warning(
-              "Please use FileSystemSaver when use HvdAllToAllEmbedding. "
-              "It will allow TFRA load KV files when Embedding tensor parallel. "
-              f"The embedding shards at each horovod rank are now temporarily stored in {de_dir}"
+                "Please use FileSystemSaver when use HvdAllToAllEmbedding. "
+                "It will allow TFRA load KV files when Embedding tensor parallel. "
+                f"The embedding shards at each horovod rank are now temporarily stored in {de_dir}"
             )
       if not isinstance(de_var.kv_creator.saver, de.FileSystemSaver):
         # This function only serves FileSystemSaver.
