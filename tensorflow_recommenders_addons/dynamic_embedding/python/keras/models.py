@@ -44,7 +44,7 @@ def _de_keras_save_func(original_save_func,
                         *args,
                         **kwargs):
   """Overwrite TF Keras save function
-    Calling the TF save API for all ranks causes file conflicts,
+    Calling the TF save API for all ranks causes file conflicts, 
     so KV files other than rank0 need to be saved by calling the underlying API separately.
     This is a convenience function for saving HvdAllToAllEmbedding to KV files in different rank.
   """
