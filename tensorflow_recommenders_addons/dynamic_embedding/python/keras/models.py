@@ -124,7 +124,7 @@ def _de_keras_save_func(original_save_func,
         # save optimizer parameters of Dynamic Embedding
         if include_optimizer is True:
           de_opt_vars = a2a_emb.optimizer_vars.as_list() if hasattr(
-            a2a_emb.optimizer_vars, "as_list") else a2a_emb.optimizer_vars
+              a2a_emb.optimizer_vars, "as_list") else a2a_emb.optimizer_vars
           for de_opt_var in de_opt_vars:
             de_opt_var.save_to_file_system(dirpath=de_dir,
                                            proc_size=proc_size,
