@@ -165,8 +165,10 @@ cd recommenders-addons
 
 # This script links project with TensorFlow dependency
 python configure.py
+
 bazel build --enable_runfiles build_pip_pkg
 bazel-bin/build_pip_pkg artifacts
+
 pip install artifacts/tensorflow_recommenders_addons-*.whl
 ```
 #### GPU Support

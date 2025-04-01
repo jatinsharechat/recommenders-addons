@@ -120,7 +120,7 @@ def _de_keras_save_func(original_save_func,
       if de_var._saveable_object_creator is not None:
         if not isinstance(de_var.kv_creator.saver, de.FileSystemSaver):
           # This function only serves FileSystemSaver.
-          return
+          continue
         # save optimizer parameters of Dynamic Embedding
         if include_optimizer is True:
           de_opt_vars = a2a_emb.optimizer_vars.as_list() if hasattr(
@@ -131,7 +131,7 @@ def _de_keras_save_func(original_save_func,
                                            proc_rank=proc_rank)
         if proc_rank == 0:
           # FileSystemSaver works well at rank 0.
-          return
+          continue
         # save Dynamic Embedding Parameters
         de_var.save_to_file_system(dirpath=de_dir,
                                    proc_size=proc_size,
