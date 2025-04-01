@@ -98,7 +98,7 @@ def _de_keras_save_func(original_save_func,
       # Redirect new de_dir
       if hasattr(de_var, 'saveable'):
         de_var.saveable._saver_config.save_path = de_dir
-  
+
   def _maybe_save_restrict_policy_params(de_var, proc_size=1, proc_rank=0):
     if not hasattr(de_var, "restrict_policy"):
       return
@@ -108,7 +108,7 @@ def _de_keras_save_func(original_save_func,
       de_var.save_to_file_system(dirpath=de_dir,
                                  proc_size=proc_size,
                                  proc_rank=proc_rank)
-  
+
   def _traverse_emb_layers_and_save(proc_size=1, proc_rank=0):
     for var in model.variables:
       if not hasattr(var, "params"):
