@@ -99,34 +99,15 @@ def _de_keras_save_func(original_save_func,
       if hasattr(de_var, 'saveable'):
         de_var.saveable._saver_config.save_path = de_dir
   
-  def _save_de_var(de_var, proc_size=1, proc_rank=0):
-    a2a_emb = de_var._created_in_class
-    if de_var._saveable_object_creator is not None:
-      if not isinstance(de_var.kv_creator.saver, de.FileSystemSaver):
-        # This function only serves FileSystemSaver.
-        return
-      # save optimizer parameters of Dynamic Embedding
-      if include_optimizer is True:
-        de_opt_vars = a2a_emb.optimizer_vars.as_list() if hasattr(
-          a2a_emb.optimizer_vars, "as_list") else a2a_emb.optimizer_vars
-        for de_opt_var in de_opt_vars:
-          de_opt_var.save_to_file_system(dirpath=de_dir,
-                                         proc_size=proc_size,
-                                         proc_rank=proc_rank)
-      if proc_rank == 0:
-        # FileSystemSaver works well at rank 0.
-        return
-      # save Dynamic Embedding Parameters
-      de_var.save_to_file_system(dirpath=de_dir,
-                                 proc_size=proc_size,
-                                 proc_rank=proc_rank)
-  
   def _maybe_save_restrict_policy_params(de_var, proc_size=1, proc_rank=0):
     if not hasattr(de_var, "restrict_policy"):
       return
     if de_var.restrict_policy is not None:
+      # Only save restrict policy var if policy created
       de_var = de_var.restrict_policy._restrict_var
-      _save_de_var(de_var, proc_size=proc_size, proc_rank=proc_rank)
+      de_var.save_to_file_system(dirpath=de_dir,
+                                 proc_size=proc_size,
+                                 proc_rank=proc_rank)
   
   def _traverse_emb_layers_and_save(proc_size=1, proc_rank=0):
     for var in model.variables:
@@ -135,7 +116,27 @@ def _de_keras_save_func(original_save_func,
       if not hasattr(var.params, "_created_in_class"):
         continue
       de_var = var.params
-      _save_de_var(de_var, proc_size=proc_size, proc_rank=proc_rank)
+      a2a_emb = de_var._created_in_class
+      if de_var._saveable_object_creator is not None:
+        if not isinstance(de_var.kv_creator.saver, de.FileSystemSaver):
+          # This function only serves FileSystemSaver.
+          return
+        # save optimizer parameters of Dynamic Embedding
+        if include_optimizer is True:
+          de_opt_vars = a2a_emb.optimizer_vars.as_list() if hasattr(
+            a2a_emb.optimizer_vars, "as_list") else a2a_emb.optimizer_vars
+          for de_opt_var in de_opt_vars:
+            de_opt_var.save_to_file_system(dirpath=de_dir,
+                                           proc_size=proc_size,
+                                           proc_rank=proc_rank)
+        if proc_rank == 0:
+          # FileSystemSaver works well at rank 0.
+          return
+        # save Dynamic Embedding Parameters
+        de_var.save_to_file_system(dirpath=de_dir,
+                                   proc_size=proc_size,
+                                   proc_rank=proc_rank)
+      # Save restrict policy for each hvd.rank()
       _maybe_save_restrict_policy_params(de_var, proc_size=proc_size, proc_rank=proc_rank)
 
   if hvd is None:

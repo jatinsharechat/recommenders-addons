@@ -19,7 +19,7 @@ except:
 import tensorflow_datasets as tfds
 import horovod.tensorflow as hvd
 # optimal performance
-os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit'
+# os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit'
 
 
 def has_horovod() -> bool:
@@ -665,9 +665,7 @@ def train():
             callbacks=callbacks_list,
             epochs=FLAGS.epochs,
             steps_per_epoch=FLAGS.steps_per_epoch,
-            verbose=1 if get_rank() == 0 else 0)
-
-  print(model.user_embedding.sparse_embedding_layer.params.restrict_policy)
+            verbose=1)# if get_rank() == 0 else 0)
 
   export_to_savedmodel(model, FLAGS.model_dir)
   export_for_serving(model, FLAGS.export_dir)
