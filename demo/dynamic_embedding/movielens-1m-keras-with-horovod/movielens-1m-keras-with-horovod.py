@@ -71,105 +71,105 @@ flags.DEFINE_bool('shuffle', True, 'shuffle dataset.')
 FLAGS = flags.FLAGS
 
 input_spec = {
-  'user_id':
-    tf.TensorSpec(shape=[
-      None,
-      1,
-    ], dtype=tf.int64, name='user_id'),
-  'user_gender':
-    tf.TensorSpec(shape=[
-      None,
-      1,
-    ], dtype=tf.int64, name='user_gender'),
-  'user_occupation_label':
-    tf.TensorSpec(shape=[
-      None,
-      1,
-    ],
-      dtype=tf.int64,
-      name='user_occupation_label'),
-  'bucketized_user_age':
-    tf.TensorSpec(shape=[
-      None,
-      1,
-    ],
-      dtype=tf.int64,
-      name='bucketized_user_age'),
-  'movie_id':
-    tf.TensorSpec(shape=[
-      None,
-      1,
-    ], dtype=tf.int64, name='movie_id'),
-  'movie_genres':
-    tf.TensorSpec(shape=[
-      None,
-      1,
-    ], dtype=tf.int64, name='movie_genres'),
-  'timestamp':
-    tf.TensorSpec(shape=[
-      None,
-      1,
-    ], dtype=tf.int64, name='timestamp')
+    'user_id':
+        tf.TensorSpec(shape=[
+            None,
+            1,
+        ], dtype=tf.int64, name='user_id'),
+    'user_gender':
+        tf.TensorSpec(shape=[
+            None,
+            1,
+        ], dtype=tf.int64, name='user_gender'),
+    'user_occupation_label':
+        tf.TensorSpec(shape=[
+            None,
+            1,
+        ],
+                      dtype=tf.int64,
+                      name='user_occupation_label'),
+    'bucketized_user_age':
+        tf.TensorSpec(shape=[
+            None,
+            1,
+        ],
+                      dtype=tf.int64,
+                      name='bucketized_user_age'),
+    'movie_id':
+        tf.TensorSpec(shape=[
+            None,
+            1,
+        ], dtype=tf.int64, name='movie_id'),
+    'movie_genres':
+        tf.TensorSpec(shape=[
+            None,
+            1,
+        ], dtype=tf.int64, name='movie_genres'),
+    'timestamp':
+        tf.TensorSpec(shape=[
+            None,
+            1,
+        ], dtype=tf.int64, name='timestamp')
 }
 
 feature_info_spec = {
-  'movie_id': {
-    'code': 101,
-    'dtype': tf.int64,
-    'dim': 1,
-    'ptype': 'sparse_cpu',
-    'input_tensor': None,
-    'pretreated_tensor': None
-  },
-  'movie_genres': {
-    'code': 102,
-    'dtype': tf.int64,
-    'dim': 1,
-    'ptype': 'normal_gpu',
-    'input_tensor': None,
-    'pretreated_tensor': None,
-  },
-  'user_id': {
-    'code': 103,
-    'dtype': tf.int64,
-    'dim': 1,
-    'ptype': 'sparse_cpu',
-    'input_tensor': None,
-    'pretreated_tensor': None,
-  },
-  'user_gender': {
-    'code': 104,
-    'dtype': tf.int64,
-    'dim': 1,
-    'ptype': 'normal_gpu',
-    'input_tensor': None,
-    'pretreated_tensor': None,
-  },
-  'user_occupation_label': {
-    'code': 105,
-    'dtype': tf.int64,
-    'dim': 1,
-    'ptype': 'normal_gpu',
-    'input_tensor': None,
-    'pretreated_tensor': None,
-  },
-  'bucketized_user_age': {
-    'code': 106,
-    'dtype': tf.int64,
-    'dim': 1,
-    'ptype': 'normal_gpu',
-    'input_tensor': None,
-    'pretreated_tensor': None,
-    'boundaries': [i for i in range(0, 100, 10)],
-  },
-  'timestamp': {
-    'code': 107,
-    'dtype': tf.int64,
-    'dim': 1,
-    'ptype': 'normal_gpu',
-    'input_tensor': None,
-    'pretreated_tensor': None,
-  }
+    'movie_id': {
+        'code': 101,
+        'dtype': tf.int64,
+        'dim': 1,
+        'ptype': 'sparse_cpu',
+        'input_tensor': None,
+        'pretreated_tensor': None
+    },
+    'movie_genres': {
+        'code': 102,
+        'dtype': tf.int64,
+        'dim': 1,
+        'ptype': 'normal_gpu',
+        'input_tensor': None,
+        'pretreated_tensor': None,
+    },
+    'user_id': {
+        'code': 103,
+        'dtype': tf.int64,
+        'dim': 1,
+        'ptype': 'sparse_cpu',
+        'input_tensor': None,
+        'pretreated_tensor': None,
+    },
+    'user_gender': {
+        'code': 104,
+        'dtype': tf.int64,
+        'dim': 1,
+        'ptype': 'normal_gpu',
+        'input_tensor': None,
+        'pretreated_tensor': None,
+    },
+    'user_occupation_label': {
+        'code': 105,
+        'dtype': tf.int64,
+        'dim': 1,
+        'ptype': 'normal_gpu',
+        'input_tensor': None,
+        'pretreated_tensor': None,
+    },
+    'bucketized_user_age': {
+        'code': 106,
+        'dtype': tf.int64,
+        'dim': 1,
+        'ptype': 'normal_gpu',
+        'input_tensor': None,
+        'pretreated_tensor': None,
+        'boundaries': [i for i in range(0, 100, 10)],
+    },
+    'timestamp': {
+        'code': 107,
+        'dtype': tf.int64,
+        'dim': 1,
+        'ptype': 'normal_gpu',
+        'input_tensor': None,
+        'pretreated_tensor': None,
+    }
 }
 
 
@@ -203,21 +203,21 @@ def embedding_inputs_concat(input_tensors, input_dims):
 def embedding_out_split(embedding_out_concat, input_split_dims):
   embedding_out = list()
   embedding_out.extend(
-    tf.split(embedding_out_concat, input_split_dims,
-             axis=1))  # (feature_combin_num, (batch, dim, emb_size))
+      tf.split(embedding_out_concat, input_split_dims,
+               axis=1))  # (feature_combin_num, (batch, dim, emb_size))
   assert (len(input_split_dims) == len(embedding_out))
   return embedding_out
 
 
 class Bucketize(tf.keras.layers.Layer):
-  
+
   def __init__(self, boundaries, **kwargs):
     self.boundaries = boundaries
     super(Bucketize, self).__init__(**kwargs)
-  
+
   def call(self, x, **kwargs):
     return tf.raw_ops.Bucketize(input=x, boundaries=self.boundaries)
-  
+
   def get_config(self,):
     config = {'boundaries': self.boundaries}
     base_config = super(Bucketize, self).get_config()
@@ -238,9 +238,9 @@ def get_kv_creator(mpi_size: int,
     # so set the factor larger than max_capacity to avoid this case
     factor = mpi_size * 0.7
     config = de.HkvHashTableConfig(
-      init_capacity=math.ceil(vocab_size / factor),
-      max_capacity=math.ceil(max_capacity / factor),
-      max_hbm_for_values=math.ceil(max_capacity * value_size * dim / factor))
+        init_capacity=math.ceil(vocab_size / factor),
+        max_capacity=math.ceil(max_capacity / factor),
+        max_hbm_for_values=math.ceil(max_capacity * value_size * dim / factor))
     return de.HkvHashTableCreator(config=config, saver=saver)
   else:
     # for CuckooHashTable case the init_capacity passed in by Embedding layer
@@ -249,7 +249,7 @@ def get_kv_creator(mpi_size: int,
 
 
 class ChannelEmbeddingLayers(tf.keras.layers.Layer):
-  
+
   def __init__(self,
                name='',
                dense_embedding_size=1,
@@ -257,46 +257,46 @@ class ChannelEmbeddingLayers(tf.keras.layers.Layer):
                embedding_initializer=tf.keras.initializers.Zeros(),
                mpi_size=1,
                mpi_rank=0):
-    
+
     super(ChannelEmbeddingLayers, self).__init__()
     init_capacity = 4096000
     kv_creator_dense = get_kv_creator(mpi_size, mpi_rank, init_capacity,
                                       tf.dtypes.float32.size,
                                       dense_embedding_size)
-    
+
     self.dense_embedding_layer = de.keras.layers.HvdAllToAllEmbedding(
-      mpi_size=mpi_size,
-      embedding_size=dense_embedding_size,
-      key_dtype=tf.int64,
-      value_dtype=tf.float32,
-      initializer=embedding_initializer,
-      name=name + '_DenseUnifiedEmbeddingLayer',
-      init_capacity=init_capacity,
-      kv_creator=kv_creator_dense,
-      short_file_name=True,
+        mpi_size=mpi_size,
+        embedding_size=dense_embedding_size,
+        key_dtype=tf.int64,
+        value_dtype=tf.float32,
+        initializer=embedding_initializer,
+        name=name + '_DenseUnifiedEmbeddingLayer',
+        init_capacity=init_capacity,
+        kv_creator=kv_creator_dense,
+        short_file_name=True,
     )
-    
+
     kv_creator_sparse = get_kv_creator(mpi_size, mpi_rank, init_capacity,
                                        tf.dtypes.float32.size,
                                        sparse_embedding_size)
     self.sparse_embedding_layer = de.keras.layers.HvdAllToAllEmbedding(
-      mpi_size=mpi_size,
-      embedding_size=sparse_embedding_size,
-      key_dtype=tf.int64,
-      value_dtype=tf.float32,
-      initializer=embedding_initializer,
-      name=name + '_SparseUnifiedEmbeddingLayer',
-      init_capacity=init_capacity,
-      kv_creator=kv_creator_sparse,
-      short_file_name=True,
+        mpi_size=mpi_size,
+        embedding_size=sparse_embedding_size,
+        key_dtype=tf.int64,
+        value_dtype=tf.float32,
+        initializer=embedding_initializer,
+        name=name + '_SparseUnifiedEmbeddingLayer',
+        init_capacity=init_capacity,
+        kv_creator=kv_creator_sparse,
+        short_file_name=True,
     )
-    
+
     self.dnn = tf.keras.layers.Dense(
-      128,
-      activation='relu',
-      kernel_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1),
-      bias_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1))
-  
+        128,
+        activation='relu',
+        kernel_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1),
+        bias_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1))
+
   def __call__(self, features_info):
     dense_inputs = []
     dense_input_dims = []
@@ -333,20 +333,20 @@ class ChannelEmbeddingLayers(tf.keras.layers.Layer):
       if input_is_sequence_feature[i] == True:
         # Deal with the embedding from vector features.
         embedding_vec = tf.math.reduce_mean(
-          embedding, axis=1,
-          keepdims=True)  # (feature_combin_num, (batch, x, emb_size))
+            embedding, axis=1,
+            keepdims=True)  # (feature_combin_num, (batch, x, emb_size))
       else:
         embedding_vec = embedding
       embedding_vec = tf.keras.layers.Flatten()(embedding_vec)
       embedding_outs.append(embedding_vec)
     # Final embedding result.
     embeddings_concat = tf.keras.layers.Concatenate(axis=1)(embedding_outs)
-    
+
     return self.dnn(embeddings_concat)
 
 
 class DualChannelsDeepModel(tf.keras.Model):
-  
+
   def __init__(self,
                user_embedding_size=1,
                movie_embedding_size=1,
@@ -354,7 +354,7 @@ class DualChannelsDeepModel(tf.keras.Model):
                is_training=True,
                mpi_size=1,
                mpi_rank=0):
-    
+
     if is_training:
       de.enable_train_mode()
       if embedding_initializer is None:
@@ -363,47 +363,47 @@ class DualChannelsDeepModel(tf.keras.Model):
       de.enable_inference_mode()
       if embedding_initializer is None:
         embedding_initializer = tf.keras.initializers.Zeros()
-    
+
     super(DualChannelsDeepModel, self).__init__()
     self.user_embedding_size = user_embedding_size
     self.movie_embedding_size = movie_embedding_size
     print(f"mpi_size {mpi_size}, mpi_rank {mpi_rank}")
     self.user_embedding = ChannelEmbeddingLayers(
-      name='user',
-      dense_embedding_size=user_embedding_size,
-      sparse_embedding_size=user_embedding_size * 2,
-      embedding_initializer=embedding_initializer,
-      mpi_size=mpi_size,
-      mpi_rank=mpi_rank)
+        name='user',
+        dense_embedding_size=user_embedding_size,
+        sparse_embedding_size=user_embedding_size * 2,
+        embedding_initializer=embedding_initializer,
+        mpi_size=mpi_size,
+        mpi_rank=mpi_rank)
     self.movie_embedding = ChannelEmbeddingLayers(
-      name='movie',
-      dense_embedding_size=movie_embedding_size,
-      sparse_embedding_size=movie_embedding_size * 2,
-      embedding_initializer=embedding_initializer,
-      mpi_size=mpi_size,
-      mpi_rank=mpi_rank)
+        name='movie',
+        dense_embedding_size=movie_embedding_size,
+        sparse_embedding_size=movie_embedding_size * 2,
+        embedding_initializer=embedding_initializer,
+        mpi_size=mpi_size,
+        mpi_rank=mpi_rank)
     self.dynamic_layer_norm = de.keras.layers.LayerNormalization()
     self.dnn1 = tf.keras.layers.Dense(
-      64,
-      activation='relu',
-      kernel_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1),
-      bias_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1))
+        64,
+        activation='relu',
+        kernel_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1),
+        bias_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1))
     self.dnn2 = tf.keras.layers.Dense(
-      16,
-      activation='relu',
-      kernel_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1),
-      bias_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1))
+        16,
+        activation='relu',
+        kernel_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1),
+        bias_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1))
     self.dnn3 = tf.keras.layers.Dense(
-      5,
-      activation='softmax',
-      kernel_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1),
-      bias_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1))
+        5,
+        activation='softmax',
+        kernel_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1),
+        bias_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1))
     self.bias_net = tf.keras.layers.Dense(
-      5,
-      activation='softmax',
-      kernel_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1),
-      bias_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1))
-  
+        5,
+        activation='softmax',
+        kernel_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1),
+        bias_initializer=tf.keras.initializers.RandomNormal(0.0, 0.1))
+
   @tf.function
   def call(self, features):
     # Construct input layers
@@ -416,7 +416,7 @@ class DualChannelsDeepModel(tf.keras.Model):
       fea_info['input_tensor'] = input_tensor
       if fea_info.__contains__('boundaries'):
         input_tensor = Bucketize(
-          boundaries=fea_info['boundaries'])(input_tensor)
+            boundaries=fea_info['boundaries'])(input_tensor)
       # To prepare for GPU table combined queries, use a prefix to distinguish different features in a table.
       if fea_info['ptype'] == 'user_occupation_label':
         input_tensor_prefix_code = int(fea_info['code']) << 48
@@ -427,30 +427,30 @@ class DualChannelsDeepModel(tf.keras.Model):
         # xor operation can be replaced with addition operation to facilitate subsequent optimization of TRT and OpenVino.
         input_tensor = tf.add(input_tensor, input_tensor_prefix_code)
       fea_info['pretreated_tensor'] = input_tensor
-    
+
     user_fea = ['user_id', 'user_gender', 'user_occupation_label']
     user_fea = [i for i in features.keys() if i in user_fea]
     user_fea_info = {
-      key: value
-      for key, value in feature_info_spec.items()
-      if key in user_fea
+        key: value
+        for key, value in feature_info_spec.items()
+        if key in user_fea
     }
     movie_fea = ['movie_id', 'movie_genres', 'user_occupation_label']
     movie_fea = [i for i in features.keys() if i in movie_fea]
     movie_fea_info = {
-      key: value
-      for key, value in feature_info_spec.items()
-      if key in movie_fea
+        key: value
+        for key, value in feature_info_spec.items()
+        if key in movie_fea
     }
     user_latent = self.user_embedding(user_fea_info)
     movie_latent = self.movie_embedding(movie_fea_info)
     latent = tf.concat([user_latent, movie_latent], axis=1)
-    
+
     normalized_emb = self.dynamic_layer_norm(latent)
     x = self.dnn1(normalized_emb)
     x = self.dnn2(x)
     x = self.dnn3(x)
-    
+
     bias = self.bias_net(normalized_emb)
     x = 0.2 * x + 0.8 * bias
     user_rating = tf.keras.layers.Lambda(lambda x: x, name='user_rating')(x)
@@ -463,26 +463,26 @@ def get_dataset(batch_size=1):
                  data_dir="~/dataset",
                  download=True)
   features = ds.map(
-    lambda x: {
-      "movie_id":
-        tf.strings.to_number(x["movie_id"], tf.int64),
-      "movie_genres":
-        tf.cast(x["movie_genres"][0], tf.int64),
-      "user_id":
-        tf.strings.to_number(x["user_id"], tf.int64),
-      "user_gender":
-        tf.cast(x["user_gender"], tf.int64),
-      "user_occupation_label":
-        tf.cast(x["user_occupation_label"], tf.int64),
-      "bucketized_user_age":
-        tf.cast(x["bucketized_user_age"], tf.int64),
-      "timestamp":
-        tf.cast(x["timestamp"] - 880000000, tf.int64),
-    })
-  
+      lambda x: {
+          "movie_id":
+              tf.strings.to_number(x["movie_id"], tf.int64),
+          "movie_genres":
+              tf.cast(x["movie_genres"][0], tf.int64),
+          "user_id":
+              tf.strings.to_number(x["user_id"], tf.int64),
+          "user_gender":
+              tf.cast(x["user_gender"], tf.int64),
+          "user_occupation_label":
+              tf.cast(x["user_occupation_label"], tf.int64),
+          "bucketized_user_age":
+              tf.cast(x["bucketized_user_age"], tf.int64),
+          "timestamp":
+              tf.cast(x["timestamp"] - 880000000, tf.int64),
+      })
+
   ratings = ds.map(lambda x: {
-    "user_rating":
-      tf.one_hot(tf.cast(x["user_rating"] - 1, dtype=tf.int64), 5)
+      "user_rating":
+          tf.one_hot(tf.cast(x["user_rating"] - 1, dtype=tf.int64), 5)
   })
   dataset = tf.data.Dataset.zip((features, ratings))
   if FLAGS.shuffle:
@@ -492,16 +492,16 @@ def get_dataset(batch_size=1):
   dataset = dataset.repeat(1).batch(batch_size).prefetch(tf.data.AUTOTUNE)
   # Only GPU:0 since TF is set to be visible to GPU:X
   dataset = dataset.apply(
-    tf.data.experimental.prefetch_to_device('GPU:0', buffer_size=2))
+      tf.data.experimental.prefetch_to_device('GPU:0', buffer_size=2))
   return dataset
 
 
 def export_to_savedmodel(model, savedmodel_dir):
   save_options = tf.saved_model.SaveOptions(namespace_whitelist=['TFRA'])
-  
+
   if not os.path.exists(savedmodel_dir):
     os.mkdir(savedmodel_dir)
-  
+
   ########################## What really happened ##########################
   # # Calling the TF save API for all ranks causes file conflicts, so KV files other than rank0 need to be saved by calling the underlying API separately.
   # if hvd.rank() == 0:
@@ -526,7 +526,7 @@ def export_to_savedmodel(model, savedmodel_dir):
   #         opt_de_var.save_to_file_system(dirpath=de_dir,
   #                                        proc_size=hvd.size(),
   #                                        proc_rank=hvd.rank())
-  
+
   # TFRA modify the Keras save function with a patch.
   # !!!! Run save_model function in all rank !!!!
   de.keras.models.save_model(model,
@@ -556,12 +556,12 @@ def serve(save_model, *args, **kwargs):
 
 def export_for_serving(model, export_dir):
   save_options = tf.saved_model.SaveOptions(namespace_whitelist=['TFRA'])
-  
+
   if not os.path.exists(export_dir):
     os.mkdir(export_dir)
-  
+
   arg_specs, kwarg_specs = save_spec(model)
-  
+
   ########################## What really happened ##########################
   # if hvd.rank() == 0:
   #   # Remember to remove optimizer parameters when ready to serve.
@@ -583,21 +583,21 @@ def export_for_serving(model, export_dir):
   #       layer.params.save_to_file_system(dirpath=de_dir,
   #                                        proc_size=hvd.size(),
   #                                        proc_rank=hvd.rank())
-  
+
   # TFRA modify the Keras save function with a patch.
   # !!!! Run save_model function in all rank !!!!
   de.keras.models.save_model(
-    model,
-    export_dir,
-    overwrite=True,
-    include_optimizer=False,
-    options=save_options,
-    signatures={
-      'serving_default':
-        serve.get_concrete_function(model, *arg_specs, **kwarg_specs)
-    },
+      model,
+      export_dir,
+      overwrite=True,
+      include_optimizer=False,
+      options=save_options,
+      signatures={
+          'serving_default':
+              serve.get_concrete_function(model, *arg_specs, **kwarg_specs)
+      },
   )
-  
+
   if get_rank() == 0:
     # Modify the inference graph to a stand-alone version
     tf.keras.backend.clear_session()
@@ -613,10 +613,10 @@ def export_for_serving(model, export_dir):
                                   options=save_options,
                                   experimental_skip_checkpoint=True,
                                   signatures={
-                                    'serving_default':
-                                      serve.get_concrete_function(
-                                        export_model, *arg_specs,
-                                        **kwarg_specs)
+                                      'serving_default':
+                                          serve.get_concrete_function(
+                                              export_model, *arg_specs,
+                                              **kwarg_specs)
                                   })
 
 
@@ -627,42 +627,42 @@ def train():
                                 True, get_cluster_size(), get_rank())
   optimizer = Adam(1E-3)
   optimizer = de.DynamicEmbeddingOptimizer(optimizer, synchronous=True)
-  
+
   auc = tf.keras.metrics.AUC(num_thresholds=1000)
   model.compile(optimizer=optimizer,
                 loss=tf.keras.losses.MeanSquaredError(),
                 metrics=[
-                  auc,
+                    auc,
                 ])
-  
+
   if os.path.exists(FLAGS.model_dir + '/variables'):
     model.load_weights(FLAGS.model_dir)
-  
+
   tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=FLAGS.model_dir)
   save_options = tf.saved_model.SaveOptions(namespace_whitelist=['TFRA'])
   ckpt_callback = de.keras.callbacks.ModelCheckpoint(
-    filepath=FLAGS.model_dir + '/weights_epoch{epoch:03d}_loss{loss:.4f}',
-    options=save_options)
+      filepath=FLAGS.model_dir + '/weights_epoch{epoch:03d}_loss{loss:.4f}',
+      options=save_options)
   if has_horovod():
     # horovod callback is used to broadcast the value generated by initializer of rank0.
     hvd_opt_init_callback = de.keras.callbacks.DEHvdBroadcastGlobalVariablesCallback(
-      root_rank=0)
+        root_rank=0)
     callbacks_list = [hvd_opt_init_callback, ckpt_callback]
   else:
     callbacks_list = [ckpt_callback]
-  
+
   # The log class callback only takes effect in rank0 for convenience
   if get_rank() == 0:
     callbacks_list.extend([tensorboard_callback])
   # If there are callbacks such as evaluation metrics that call model calculations, take effect on all ranks.
   # callbacks_list.extend([my_auc_callback])
-  
+
   model.fit(dataset,
             callbacks=callbacks_list,
             epochs=FLAGS.epochs,
             steps_per_epoch=FLAGS.steps_per_epoch,
             verbose=1 if get_rank() == 0 else 0)
-  
+
   export_to_savedmodel(model, FLAGS.model_dir)
   export_for_serving(model, FLAGS.export_dir)
 
@@ -674,19 +674,19 @@ def export():
   export_model = DualChannelsDeepModel(FLAGS.embedding_size,
                                        FLAGS.embedding_size,
                                        tf.keras.initializers.RandomNormal(
-                                         0.0, 0.5),
+                                           0.0, 0.5),
                                        False,
                                        mpi_size=1,
                                        mpi_rank=0)
   save_options = tf.saved_model.SaveOptions(namespace_whitelist=['TFRA'])
   dummy_features = {
-    'movie_id': tf.constant([0], dtype=tf.int64),
-    'movie_genres': tf.constant([0], dtype=tf.int64),
-    'user_id': tf.constant([0], dtype=tf.int64),
-    'user_gender': tf.constant([0], dtype=tf.int64),
-    'user_occupation_label': tf.constant([0], dtype=tf.int64),
-    'bucketized_user_age': tf.constant([0], dtype=tf.int64),
-    'timestamp': tf.constant([0], dtype=tf.int64)
+      'movie_id': tf.constant([0], dtype=tf.int64),
+      'movie_genres': tf.constant([0], dtype=tf.int64),
+      'user_id': tf.constant([0], dtype=tf.int64),
+      'user_gender': tf.constant([0], dtype=tf.int64),
+      'user_occupation_label': tf.constant([0], dtype=tf.int64),
+      'bucketized_user_age': tf.constant([0], dtype=tf.int64),
+      'timestamp': tf.constant([0], dtype=tf.int64)
   }
   export_model(dummy_features)
   arg_specs, kwarg_specs = save_spec(export_model)
@@ -698,36 +698,36 @@ def export():
                                 options=save_options,
                                 experimental_skip_checkpoint=True,
                                 signatures={
-                                  'serving_default':
-                                    serve.get_concrete_function(
-                                      export_model, *arg_specs,
-                                      **kwarg_specs)
+                                    'serving_default':
+                                        serve.get_concrete_function(
+                                            export_model, *arg_specs,
+                                            **kwarg_specs)
                                 })
 
 
 def test():
   de.enable_inference_mode()
-  
+
   dataset = get_dataset(batch_size=FLAGS.test_batch)
   model = tf.keras.models.load_model(FLAGS.export_dir)
-  
+
   def get_close_or_equal_cnt(model, features, ratings):
     preds = model(features)
     preds = tf.math.argmax(preds, axis=1)
     ratings = tf.math.argmax(ratings, axis=1)
     close_cnt = tf.reduce_sum(
-      tf.cast(tf.math.abs(preds - ratings) <= 1, dtype=tf.int32))
+        tf.cast(tf.math.abs(preds - ratings) <= 1, dtype=tf.int32))
     equal_cnt = tf.reduce_sum(
-      tf.cast(tf.math.abs(preds - ratings) == 0, dtype=tf.int32))
+        tf.cast(tf.math.abs(preds - ratings) == 0, dtype=tf.int32))
     return close_cnt, equal_cnt
-  
+
   it = iter(dataset)
   for step in range(FLAGS.test_steps):
     features, ratings = it.get_next()
     close_cnt, equal_cnt = get_close_or_equal_cnt(model, features, ratings)
     print(
-      f'In batch prediction, step: {step}, {close_cnt}/{FLAGS.test_batch} are closely'
-      f' accurate, {equal_cnt}/{FLAGS.test_batch} are absolutely accurate.')
+        f'In batch prediction, step: {step}, {close_cnt}/{FLAGS.test_batch} are closely'
+        f' accurate, {equal_cnt}/{FLAGS.test_batch} are absolutely accurate.')
 
 
 def inference():
@@ -735,30 +735,30 @@ def inference():
   model = tf.keras.models.load_model(FLAGS.export_dir)
   print(f"model signature keys: {model.signatures.keys()} {model.signatures}")
   inference_func = model.signatures['serving_default']
-  
+
   dataset = get_dataset(batch_size=FLAGS.test_batch)
   it = iter(dataset)
-  
+
   def get_close_or_equal_cnt(preds, ratings):
     preds = tf.math.argmax(preds['user_rating'], axis=1)
     ratings = tf.math.argmax(ratings['user_rating'], axis=1)
     close_cnt = tf.reduce_sum(
-      tf.cast(tf.math.abs(preds - ratings) <= 1, dtype=tf.int32))
+        tf.cast(tf.math.abs(preds - ratings) <= 1, dtype=tf.int32))
     equal_cnt = tf.reduce_sum(
-      tf.cast(tf.math.abs(preds - ratings) == 0, dtype=tf.int32))
+        tf.cast(tf.math.abs(preds - ratings) == 0, dtype=tf.int32))
     return close_cnt, equal_cnt
-  
+
   for step in range(FLAGS.test_steps):
     features, ratings = next(it)
     ratings = ratings['user_rating']
     outputs = inference_func(**features)
     preds = outputs['user_rating']
-    
+
     close_cnt, equal_cnt = get_close_or_equal_cnt(preds, ratings)
-    
+
     print(
-      f'In batch prediction, step: {step}, {close_cnt}/{FLAGS.test_batch} are closely'
-      f' accurate, {equal_cnt}/{FLAGS.test_batch} are absolutely accurate.')
+        f'In batch prediction, step: {step}, {close_cnt}/{FLAGS.test_batch} are closely'
+        f' accurate, {equal_cnt}/{FLAGS.test_batch} are absolutely accurate.')
 
 
 def main(argv):
