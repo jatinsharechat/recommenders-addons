@@ -93,7 +93,8 @@ class HorovodAllToAllRestrictPolicyTest(test.TestCase):
     if hvd.rank() == 0:
       if os.path.exists(save_dir):
         shutil.rmtree(save_dir)
-    hvd.join()  # Sync for avoiding files conflict
+    # Sync for avoiding files conflict
+    hvd.join()
     base_model.save(save_dir, options=save_options)
     de.keras.models.save_model(base_model, save_dir, options=save_options)
   
