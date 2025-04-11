@@ -137,7 +137,9 @@ def _de_keras_save_func(original_save_func,
                                    proc_size=proc_size,
                                    proc_rank=proc_rank)
       # Save restrict policy for each hvd.rank()
-      _maybe_save_restrict_policy_params(de_var, proc_size=proc_size, proc_rank=proc_rank)
+      _maybe_save_restrict_policy_params(de_var,
+                                         proc_size=proc_size,
+                                         proc_rank=proc_rank)
 
   if hvd is None:
     call_original_save_func()
