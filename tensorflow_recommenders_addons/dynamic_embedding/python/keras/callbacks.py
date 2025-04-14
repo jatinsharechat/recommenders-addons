@@ -113,6 +113,7 @@ class DEHvdModelCheckpoint(callbacks.ModelCheckpoint):
     super(DEHvdModelCheckpoint, self).__init__(*args, **kwargs)
 
   def _save_de_model(self, filepath):
+
     def _maybe_save_restrict_policy_params(de_var, proc_size=1, proc_rank=0):
       if not hasattr(de_var, "restrict_policy"):
         return
@@ -122,6 +123,7 @@ class DEHvdModelCheckpoint(callbacks.ModelCheckpoint):
         de_var.save_to_file_system(dirpath=de_dir,
                                    proc_size=proc_size,
                                    proc_rank=proc_rank)
+
     if hvd.rank() == 0:
       if self.save_weights_only:
         self.model.save_weights(filepath, overwrite=True, options=self._options)
@@ -152,7 +154,7 @@ class DEHvdModelCheckpoint(callbacks.ModelCheckpoint):
             de_opt_var.save_to_file_system(dirpath=de_dir,
                                            proc_size=hvd.size(),
                                            proc_rank=hvd.rank())
-        
+
         # Save restrict policy for each hvd.rank()
         _maybe_save_restrict_policy_params(de_var,
                                            proc_size=hvd.size(),
