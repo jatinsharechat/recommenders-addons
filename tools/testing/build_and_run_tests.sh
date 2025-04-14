@@ -75,7 +75,7 @@ if [ "$TF_NEED_CUDA" -eq 0 ]; then
 fi
 
 # Test only with horovod on GPU
-IGNORE_HOROVOD_DIST_TRAINING_TEST = "--ignore=./tensorflow_recommenders_addons/dynamic_embedding/python/kernel_tests/horovod_embedding_restrict_save_test.py"
+IGNORE_HOROVOD_DIST_TRAINING_TEST="--ignore=./tensorflow_recommenders_addons/dynamic_embedding/python/kernel_tests/horovod_embedding_restrict_save_test.py"
 
 # Only use GPU 0 if available.
 if [ -x "$(command -v nvidia-smi)" ]; then

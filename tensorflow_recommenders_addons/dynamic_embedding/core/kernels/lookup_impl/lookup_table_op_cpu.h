@@ -429,16 +429,16 @@ struct TableDispatcher {
 
 #define CREATE_TABLE_PARTIAL_BRANCHES(PREFIX) \
   do {                                        \
-    CREATE_A_TABLE((PREFIX)*10 + 0);          \
-    CREATE_A_TABLE((PREFIX)*10 + 1);          \
-    CREATE_A_TABLE((PREFIX)*10 + 2);          \
-    CREATE_A_TABLE((PREFIX)*10 + 3);          \
-    CREATE_A_TABLE((PREFIX)*10 + 4);          \
-    CREATE_A_TABLE((PREFIX)*10 + 5);          \
-    CREATE_A_TABLE((PREFIX)*10 + 6);          \
-    CREATE_A_TABLE((PREFIX)*10 + 7);          \
-    CREATE_A_TABLE((PREFIX)*10 + 8);          \
-    CREATE_A_TABLE((PREFIX)*10 + 9);          \
+    CREATE_A_TABLE((PREFIX) * 10 + 0);        \
+    CREATE_A_TABLE((PREFIX) * 10 + 1);        \
+    CREATE_A_TABLE((PREFIX) * 10 + 2);        \
+    CREATE_A_TABLE((PREFIX) * 10 + 3);        \
+    CREATE_A_TABLE((PREFIX) * 10 + 4);        \
+    CREATE_A_TABLE((PREFIX) * 10 + 5);        \
+    CREATE_A_TABLE((PREFIX) * 10 + 6);        \
+    CREATE_A_TABLE((PREFIX) * 10 + 7);        \
+    CREATE_A_TABLE((PREFIX) * 10 + 8);        \
+    CREATE_A_TABLE((PREFIX) * 10 + 9);        \
   } while (0)
 
 // create branches with dim range [1, 100]

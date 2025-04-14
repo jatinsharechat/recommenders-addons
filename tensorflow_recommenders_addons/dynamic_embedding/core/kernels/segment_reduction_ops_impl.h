@@ -82,7 +82,7 @@ template <class Device, class T, class Tindex, bool has_num_segments>
 class SparseSegmentSumGpuOp : public AsyncOpKernel {
  public:
   explicit SparseSegmentSumGpuOp(OpKernelConstruction* context)
-      : AsyncOpKernel(context){};
+      : AsyncOpKernel(context) {};
 
   void ComputeAsync(OpKernelContext* context, DoneCallback done) override {
     const Tensor& input_data = context->input(0);
