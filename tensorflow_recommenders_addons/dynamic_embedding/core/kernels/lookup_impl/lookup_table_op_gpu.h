@@ -214,16 +214,16 @@ class TableWrapper final : public TableWrapperBase<K, V> {
 
 #define CREATE_TABLE_PARTIAL_BRANCHES(PERIFX) \
   do {                                        \
-    CREATE_A_TABLE((PERIFX)*10 + 0);          \
-    CREATE_A_TABLE((PERIFX)*10 + 1);          \
-    CREATE_A_TABLE((PERIFX)*10 + 2);          \
-    CREATE_A_TABLE((PERIFX)*10 + 3);          \
-    CREATE_A_TABLE((PERIFX)*10 + 4);          \
-    CREATE_A_TABLE((PERIFX)*10 + 5);          \
-    CREATE_A_TABLE((PERIFX)*10 + 6);          \
-    CREATE_A_TABLE((PERIFX)*10 + 7);          \
-    CREATE_A_TABLE((PERIFX)*10 + 8);          \
-    CREATE_A_TABLE((PERIFX)*10 + 9);          \
+    CREATE_A_TABLE((PERIFX) * 10 + 0);        \
+    CREATE_A_TABLE((PERIFX) * 10 + 1);        \
+    CREATE_A_TABLE((PERIFX) * 10 + 2);        \
+    CREATE_A_TABLE((PERIFX) * 10 + 3);        \
+    CREATE_A_TABLE((PERIFX) * 10 + 4);        \
+    CREATE_A_TABLE((PERIFX) * 10 + 5);        \
+    CREATE_A_TABLE((PERIFX) * 10 + 6);        \
+    CREATE_A_TABLE((PERIFX) * 10 + 7);        \
+    CREATE_A_TABLE((PERIFX) * 10 + 8);        \
+    CREATE_A_TABLE((PERIFX) * 10 + 9);        \
   } while (0)
 
 // create branches with dim range:

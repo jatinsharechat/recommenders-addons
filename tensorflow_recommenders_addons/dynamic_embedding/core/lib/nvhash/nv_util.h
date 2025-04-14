@@ -14,8 +14,10 @@
 
 #include "cuda_runtime_api.h"
 
-#define CUDA_CHECK(val) \
-  { nv::cuda_check_((val), __FILE__, __LINE__); }
+#define CUDA_CHECK(val)                         \
+  {                                             \
+    nv::cuda_check_((val), __FILE__, __LINE__); \
+  }
 
 namespace nv {
 
