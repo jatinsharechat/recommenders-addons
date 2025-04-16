@@ -402,8 +402,8 @@ json_value *json_parse_ex(json_settings *settings, const json_char *json,
             case json_object:
 
               if (state.first_pass)
-                (*(json_char *__attribute((
-                    __may_alias__)) *)&top->u.object.values) +=
+                (*(json_char *
+                   __attribute((__may_alias__)) *)&top->u.object.values) +=
                     string_length + 1;
               else {
                 top->u.object.values[top->u.object.length].name =

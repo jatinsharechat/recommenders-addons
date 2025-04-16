@@ -44,8 +44,7 @@ This code is for compatibility.*/
 
 #ifndef MAYBE_ADD_SOURCE_LOCATION
 #define MAYBE_ADD_SOURCE_LOCATION(status) \
-  {                                       \
-  }
+  {}
 #endif  // MAYBE_ADD_SOURCE_LOCATION
 
 // For propagating errors when calling a function but not return status.
