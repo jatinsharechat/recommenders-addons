@@ -363,8 +363,10 @@ class cuckoohash_map {
       return 0;
     }
     counter_type s = 0;
+    std::cout << "Size call: " << std::endl;
     for (spinlock &lock : get_current_locks()) {
       s += lock.elem_counter();
+      std:cout << "  Size loop: " << s << " elem-counter: " << lock.elem_counter() << std::endl;
     }
     assert(s >= 0);
     return static_cast<size_type>(s);
