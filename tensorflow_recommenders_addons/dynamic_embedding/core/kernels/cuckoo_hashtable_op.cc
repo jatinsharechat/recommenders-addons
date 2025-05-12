@@ -350,6 +350,14 @@ class CuckooHashTableOfTensors final : public LookupInterface {
     size_t total_saved = 0;
     auto zero_counts = 0;
     std::cout << "table size: " << table_->size() << " for: " << filepath << std::endl;
+
+    int num_spinlocks = 0;
+    int s = 0;
+    for (spinlock &lock : get_current_locks()) {
+      s += lock.elem_counter();
+      num_spinlocks += 1;
+    }
+    std::cout << "    s: " << s << " num_spinlocks: " << num_spinlocks << std::endl;
     while (search_offset < table_size) {
       auto dump_counter = table_->dump((K*)key_buffer, (V*)value_buffer,
                                        search_offset, buffer_size);
