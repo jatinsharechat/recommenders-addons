@@ -67,64 +67,10 @@ from tensorflow.python.platform import test
 from tensorflow.python.training import device_setter
 from tensorflow.python.training import server_lib
 from tensorflow.python.util import compat
-
 try:
-  from tf_keras.initializers import Zeros
-  from tf_keras.optimizers import Adam
-  from tf_keras import Input, Model, layers
+  from tensorflow.keras.legacy.optimizers import Adam
 except:
-  from tensorflow.keras.initializers import Zeros
-  from tensorflow.keras import Input, Model, layers
-  try:
-    from tensorflow.keras.optimizers import Adam
-  except:
-    from tensorflow.keras.legacy.optimizers import Adam
-
-
-class MyModel(layers.Layer):
-
-  def __init__(self):
-    super().__init__()
-    self.embeddings = de.get_variable(name="p1")
-
-  @tf.function
-  def call(self, indices_input, ids_input):
-    shape_input = tf.constant([2, 3, 4], dtype=tf.int64)
-
-    sparse_ids = tf.sparse.SparseTensor(indices=indices_input,
-                                        values=ids_input,
-                                        dense_shape=shape_input)
-
-    embeddings_result = de.safe_embedding_lookup_sparse(self.embeddings,
-                                                        sparse_ids,
-                                                        name="safe_sp_emb",
-                                                        return_trainable=False)
-    return embeddings_result
-
-
-# class MyModel(tf.Module):
-#   def __init__(self):
-#     super().__init__()
-#     # Create the variable as an attribute of the module
-#     self.embeddings = de.get_variable(name="p1")
-#
-#   @tf.function
-#   def __call__(self, indices_input, ids_input):
-#     shape_input = tf.constant([2, 3, 4], dtype=tf.int64)
-#
-#     sparse_ids = tf.sparse.SparseTensor(
-#       indices=indices_input,
-#       values=ids_input,
-#       dense_shape=shape_input
-#     )
-#
-#     embeddings_result = de.safe_embedding_lookup_sparse(
-#       self.embeddings,
-#       sparse_ids,
-#       name="safe_sp_emb",
-#       return_trainable=False
-#     )
-#     return embeddings_result
+  from tensorflow.keras.optimizers import Adam
 
 
 # pylint: disable=missing-class-docstring
@@ -192,7 +138,7 @@ def _ids_and_weights_2d(embed_dim=4, ragged=False):
   #   Row 3: single id
   #   Row 4: all ids have <=0 weight
   indices = [[0, 0], [0, 1], [0, 2], [1, 0], [3, 0], [4, 0], [4, 1]]
-  ids = [0, 1, -100, -100, 2, 0, 1]
+  ids = [0, 1, -1, -1, 2, 0, 1]
   weights = [1.0, 2.0, 1.0, 1.0, 3.0, 0.0, -0.5]
   shape = [5, embed_dim]
 
@@ -231,7 +177,7 @@ def _ids_and_weights_3d(
       [1, 1, 0],
       [1, 1, 1],
   ]
-  ids = [0, 1, -100, -100, 2, 0, 1]
+  ids = [0, 1, -1, -1, 2, 0, 1]
   weights = [1.0, 2.0, 1.0, 1.0, 3.0, 0.0, -0.5]
   shape = [2, 3, embed_dim]
 
@@ -614,22 +560,6 @@ class EmbeddingLookupTest(test.TestCase):
     self.assertAllEqual(p1._tables[0].name, "test_p1_mht_1of1")
     self.assertAllEqual(p1_reuse._tables[0].name, "test_p1_mht_1of1")
     self.assertAllEqual(p2._tables[0].name, "test_p2_mht_1of1")
-
-  def test_keras_input_safe_sparse_embedding_lookup(self):
-    indices_data = tf.constant([
-        [0, 0, 0],
-        [0, 0, 1],
-        [0, 0, 2],
-        [0, 1, 0],
-        [1, 0, 0],
-        [1, 1, 0],
-        [1, 1, 1],
-    ],
-                               name="indices_data",
-                               dtype=tf.int64)
-    ids_data = tf.constant([0, 1, -1, -1, 2, 0, 1], name="ids", dtype=tf.int64)
-    model = MyModel()
-    # output = model(indices_data, ids_data)
 
   def test_scope_reuse_safe_sparse_embedding_lookup(self):
     indices = [
@@ -1015,7 +945,7 @@ class SafeEmbeddingLookupSparseTest(test.TestCase, parameterized.TestCase):
           0,
           1,
           2,
-          -100,
+          -1,
       ])
 
       # init
@@ -1057,7 +987,7 @@ class SafeEmbeddingLookupSparseTest(test.TestCase, parameterized.TestCase):
       embedding_weights = _random_weights(embed_dim=dim)
       sparse_ids, sparse_weights = _ids_and_weights_2d(embed_dim=dim,
                                                        ragged=ragged)
-      valid_ids = np.array([0, 1, 2, 3, -100])
+      valid_ids = np.array([0, 1, 2, 3, -1])
 
       # init
       weights = embedding_weights.lookup(valid_ids)
@@ -1095,7 +1025,7 @@ class SafeEmbeddingLookupSparseTest(test.TestCase, parameterized.TestCase):
       embedding_weights = _random_weights(embed_dim=dim)
       sparse_ids, sparse_weights = _ids_and_weights_2d(embed_dim=dim,
                                                        ragged=ragged)
-      valid_ids = np.array([0, 1, 2, -100])
+      valid_ids = np.array([0, 1, 2, -1])
 
       # init
       weights = embedding_weights.lookup(valid_ids)
@@ -1133,7 +1063,7 @@ class SafeEmbeddingLookupSparseTest(test.TestCase, parameterized.TestCase):
       embedding_weights = _random_weights(embed_dim=dim, num_shards=3)
       sparse_ids, sparse_weights = _ids_and_weights_2d(embed_dim=dim,
                                                        ragged=ragged)
-      valid_ids = np.array([0, 1, 2, -100])
+      valid_ids = np.array([0, 1, 2, -1])
 
       # init
       weights = embedding_weights.lookup(valid_ids)
@@ -1205,7 +1135,7 @@ class SafeEmbeddingLookupSparseTest(test.TestCase, parameterized.TestCase):
   def test_safe_embedding_lookup_sparse_3d_return_zero_vector(self):
     with self.session(use_gpu=test_util.is_gpu_available(),
                       config=default_config):
-      valid_ids = np.array([0, 1, 2, -100])
+      valid_ids = np.array([0, 1, 2, -1])
       embedding_weights, embedding_weights_values, sparse_ids, sparse_weights = self._get_ids_and_weights_3d(
           valid_ids)
 
@@ -1233,7 +1163,7 @@ class SafeEmbeddingLookupSparseTest(test.TestCase, parameterized.TestCase):
     with self.session(use_gpu=test_util.is_gpu_available(),
                       config=default_config):
       embedding_weights, embedding_weights_values, sparse_ids, sparse_weights = self._get_ids_and_weights_3d(
-          np.array([0, 1, 2, 3, -100]))
+          np.array([0, 1, 2, 3, -1]))
       embedding_lookup_result = de.safe_embedding_lookup_sparse(
           embedding_weights, sparse_ids, sparse_weights, default_id=3)
       embedding_lookup_result = embedding_lookup_result.numpy(
@@ -1260,7 +1190,7 @@ class SafeEmbeddingLookupSparseTest(test.TestCase, parameterized.TestCase):
   def test_safe_embedding_lookup_sparse_3d_no_weights(self):
     with self.session(use_gpu=test_util.is_gpu_available(),
                       config=default_config):
-      valid_ids = np.array([0, 1, 2, -100])
+      valid_ids = np.array([0, 1, 2, -1])
       embedding_weights, embedding_weights_values, sparse_ids, _ = self._get_ids_and_weights_3d(
           valid_ids)
       embedding_lookup_result = de.safe_embedding_lookup_sparse(
@@ -1291,7 +1221,7 @@ class SafeEmbeddingLookupSparseTest(test.TestCase, parameterized.TestCase):
                       config=default_config):
       embedding_weights = _random_weights(num_shards=3)
       sparse_ids, _ = _ids_and_weights_3d()
-      valid_ids = np.array([0, 1, 2, -100])
+      valid_ids = np.array([0, 1, 2, -1])
 
       # init
       embedding_weights_values = embedding_weights.lookup(valid_ids)
@@ -1485,8 +1415,9 @@ class EmbeddingLookupEagerTest(test.TestCase):
     labels = array_ops.zeros((batch_size,), dtype=dtypes.float32)
     devar = de.get_variable(name + '/dynamic_embedding',
                             dim=embedding_size,
-                            initializer=Zeros())
-    tfvar = tf.Variable(Zeros()((nids, embedding_size), dtype=tf.float32))
+                            initializer=tf.keras.initializers.Zeros())
+    tfvar = tf.Variable(tf.keras.initializers.Zeros()((nids, embedding_size),
+                                                      dtype=tf.float32))
     return ids, labels, devar, tfvar
 
   def _loss_fn(self, params, ids, labels):

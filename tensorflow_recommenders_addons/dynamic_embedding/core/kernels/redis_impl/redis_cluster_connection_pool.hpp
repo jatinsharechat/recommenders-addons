@@ -22,7 +22,6 @@ limitations under the License.
 
 #include <chrono>
 #include <iostream>
-#include <random>
 
 #include "redis_connection_util.hpp"
 #include "thread_pool.h"
@@ -214,12 +213,6 @@ class RedisWrapper<RedisInstance, K, V,
     return nullptr;
   }
 
-  int GenerateRedisRandomTag() {
-    static thread_local std::mt19937 generator(std::random_device{}());
-    std::uniform_int_distribution<int> distribution(0, 16383);
-    return distribution(generator);
-  }
-
  public:
   virtual std::vector<std::string> GetKeyBucketsAndOptimizerParamsWithName(
       const std::string &keys_prefix_name,
@@ -231,7 +224,7 @@ class RedisWrapper<RedisInstance, K, V,
                   ::sw::redis::StringView hkey) {
       connection.send("CLUSTER SLOTS");
     };
-    ::sw::redis::StringView _hkey(std::to_string(GenerateRedisRandomTag()));
+    ::sw::redis::StringView _hkey("0");
     std::unique_ptr<redisReply, ::sw::redis::ReplyDeleter> reply;
     try {
       reply = redis_conn_read->command(cmd, _hkey);
@@ -370,7 +363,7 @@ class RedisWrapper<RedisInstance, K, V,
                   ::sw::redis::StringView hkey) {
       connection.send("CLUSTER NODES");
     };
-    ::sw::redis::StringView _hkey(std::to_string(GenerateRedisRandomTag()));
+    ::sw::redis::StringView _hkey("0");
     std::unique_ptr<redisReply, ::sw::redis::ReplyDeleter> reply;
     try {
       reply = redis_conn_read->command(cmd, _hkey);
@@ -1288,7 +1281,6 @@ every bucket has its own BucketContext for sending data---for locating reply-
                                      dtype_str_size);
     }
 
-    std::vector<std::vector<bool>> exists_split(storage_slice);
     VContentAndTypeSizeResult VCATS_temp;
     // std::vector<char> for storage all string in one KV pair
     std::vector<std::vector<char>> buff_temp(total);
@@ -1306,21 +1298,12 @@ every bucket has its own BucketContext for sending data---for locating reply-
           key_bucket_locs, KContentPointer<K>(pk_raw), KTypeSize<K>(pk_raw));
       thread_context->HandlePushBack(
           key_bucket_locs, VCATS_temp.VContentPointer, VCATS_temp.VTypeSize);
-      exists_split[key_bucket_locs].push_back(*(exists + begin + i));
     }
 
-    std::vector<std::unique_ptr<std::vector<char>>> exists_chars(storage_slice);
+    const bool *pe_raw = exists + begin;
     for (unsigned i = 0; i < storage_slice; ++i) {
-      if (!exists_split[i].empty()) {
-        exists_chars[i] =
-            std::make_unique<std::vector<char>>(exists_split[i].size());
-        std::transform(exists_split[i].begin(), exists_split[i].end(),
-                       exists_chars[i]->begin(),
-                       [](bool b) { return static_cast<char>(b); });
-
-        thread_context->HandlePushBack(i, exists_chars[i]->data(),
-                                       exists_chars[i]->size() * sizeof(char));
-      }
+      thread_context->HandlePushBack(i, KContentPointer<bool>(pe_raw),
+                                     total * KTypeSize<bool>(pe_raw));
     }
 
     auto cmd = [](::sw::redis::Connection &connection,

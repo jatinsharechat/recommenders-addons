@@ -23,15 +23,14 @@ import itertools
 import math
 import numpy as np
 import os
-from packaging import version
 import six
 import tempfile
 
 from tensorflow_recommenders_addons import dynamic_embedding as de
 from tensorflow_recommenders_addons.utils.check_platform import is_macos, is_arm64
 
-from tensorflow import version as tf_version
 from tensorflow.core.protobuf import config_pb2
+from tensorflow.keras import layers
 from tensorflow.python.client import session
 from tensorflow.python.eager import context
 from tensorflow.python.framework import constant_op
@@ -58,26 +57,17 @@ from tensorflow.python.training import adam
 from tensorflow.python.training import saver
 from tensorflow.python.training import server_lib
 from tensorflow.python.training import training
-if version.parse(tf_version.VERSION) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.checkpoint.checkpoint import Checkpoint
-else:
+except:
   from tensorflow.python.training.tracking.util import Checkpoint
 from tensorflow.python.util import compat
+from tensorflow_estimator.python.estimator import estimator
+from tensorflow_estimator.python.estimator import estimator_lib
 
-if version.parse(tf_version.VERSION) >= version.parse("2.16"):
-  try:  # independently import tf_keras
-    from tf_keras import layers
-  except:
-    from tensorflow.python.keras import layers
-else:
-  from tensorflow_estimator.python.estimator import estimator
-  from tensorflow_estimator.python.estimator import estimator_lib
-  from tensorflow.keras import layers
-
-if version.parse(tf_version.VERSION) >= version.parse("2.11"):
-  # The data_structures has been moved to the new package in tf 2.11
+try:  # The data_structures has been moved to the new package in tf 2.11
   from tensorflow.python.trackable import data_structures
-else:
+except:
   from tensorflow.python.training.tracking import data_structures
 
 try:
@@ -1020,15 +1010,12 @@ class VariableTest(test.TestCase):
     save_path = os.path.join(tempfile.mkdtemp(prefix=save_dir), "hash")
 
     # train and save
-    try:  # only test for tensorflow <= 2.15
-      est = estimator.Estimator(model_fn=model_fn, model_dir=save_path)
-      est.train(input_fn=input_fn, steps=1)
+    est = estimator.Estimator(model_fn=model_fn, model_dir=save_path)
+    est.train(input_fn=input_fn, steps=1)
 
-      # restore and predict
-      predict_results = next(est.predict(input_fn=input_fn))
-      self.assertAllEqual(predict_results, [1.0, 2.0, 3.0])
-    except:
-      pass
+    # restore and predict
+    predict_results = next(est.predict(input_fn=input_fn))
+    self.assertAllEqual(predict_results, [1.0, 2.0, 3.0])
 
   def test_save_restore_only_table(self):
     if context.executing_eagerly():
@@ -1568,6 +1555,29 @@ class VariableTest(test.TestCase):
       values = constant_op.constant([[0, 1], [2, 3], [4, 5]], dtypes.int32)
       self.evaluate(table.upsert(keys, values))
       self.assertAllEqual(3, self.evaluate(table.size()))
+
+  def test_dynamic_embedding_variable_duplicate_insert(self):
+    with self.session(use_gpu=test_util.is_gpu_available(),
+                      config=default_config):
+      default_val = -1
+      keys = constant_op.constant([0, 1, 2, 2], dtypes.int64)
+      values = constant_op.constant([[0.0], [1.0], [2.0], [3.0]],
+                                    dtypes.float32)
+      table = de.get_variable("t130",
+                              dtypes.int64,
+                              dtypes.float32,
+                              initializer=default_val)
+      self.assertAllEqual(0, self.evaluate(table.size()))
+
+      self.evaluate(table.upsert(keys, values))
+      self.assertAllEqual(3, self.evaluate(table.size()))
+
+      input_keys = constant_op.constant([0, 1, 2], dtypes.int64)
+      output = table.lookup(input_keys)
+
+      result = self.evaluate(output)
+      self.assertTrue(
+          list(result) in [[[0.0], [1.0], [3.0]], [[0.0], [1.0], [2.0]]])
 
   def test_dynamic_embedding_variable_find_high_rank(self):
     with self.session(use_gpu=test_util.is_gpu_available(),

@@ -18,8 +18,6 @@ Dynamic Embedding is designed for Large-scale Sparse Weights Training.
 See [Sparse Domain Isolation](https://github.com/tensorflow/community/pull/237)
 """
 
-from packaging import version
-
 import tensorflow as tf
 
 from tensorflow.python.eager import context
@@ -30,38 +28,25 @@ from tensorflow.python.keras.utils import tf_utils
 
 from tensorflow_recommenders_addons.dynamic_embedding.python.ops.shadow_embedding_ops import HvdVariable
 
-if version.parse(tf.__version__) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.distribute import distribute_lib as distribute_ctx
-else:
+
+  assert hasattr(distribute_ctx, 'has_strategy')
+except:
   from tensorflow.python.distribute import distribution_strategy_context as distribute_ctx
 from tensorflow.python.distribute import values_util
 from tensorflow.python.framework import ops
 from tensorflow.python.ops.variables import VariableAggregation
 from tensorflow.python.platform import tf_logging
 
-if version.parse(tf.__version__) >= version.parse("2.11"):
-  # The data_structures has been moved to the new package in tf 2.11
+try:  # The data_structures has been moved to the new package in tf 2.11
   from tensorflow.python.trackable import data_structures
-else:
+except:
   from tensorflow.python.training.tracking import data_structures
 
 from tensorflow_recommenders_addons.dynamic_embedding.python.ops.dynamic_embedding_variable import \
   TrainableWrapperDistributedPolicy
 from tensorflow_recommenders_addons.dynamic_embedding.python.ops.tf_save_restore_patch import de_fs_saveable_class_names
-
-if version.parse(tf.__version__) >= version.parse("2.16"):
-  try:  # independently import tf_keras
-    from tf_keras.layers import Layer
-    from tf_keras.initializers import RandomNormal, Zeros, serialize
-    from tf_keras import constraints
-  except:
-    from tensorflow.python.keras.legacy_tf_layers.base import Layer
-    from tensorflow.python.keras.initializers import RandomNormal, Zeros, serialize
-    from tensorflow.python.keras import constraints
-else:
-  from tensorflow.keras.layers import Layer
-  from tensorflow.keras.initializers import RandomNormal, Zeros, serialize
-  from tensorflow.keras import constraints
 
 
 def _choose_reduce_method(combiner, sparse=False, segmented=False):
@@ -108,7 +93,7 @@ def reduce_pooling(x, combiner='sum'):
     return x
 
 
-class Embedding(Layer):
+class Embedding(tf.keras.layers.Layer):
   """
   A keras style Embedding layer. The `Embedding` layer acts same like
   [tf.keras.layers.Embedding](https://www.tensorflow.org/api_docs/python/tf/keras/layers/Embedding),
@@ -143,7 +128,6 @@ class Embedding(Layer):
                devices=None,
                name='DynamicEmbeddingLayer',
                with_unique=True,
-               short_file_name=False,
                **kwargs):
     """
     Creates an Embedding layer.
@@ -160,8 +144,7 @@ class Embedding(Layer):
       devices: List of devices to place the embedding layer parameter.
       name: Name of the embedding layer.
       with_unique: Bool. Whether if the layer does unique on `ids`. Default is True.
-        must set with_unique to true in the GPU case due to the default kv is HKV hashtable,
-        and HKV requires unique key
+
       **kwargs:
         trainable: Bool. Whether if the layer is trainable. Default is True.
         bp_v2: Bool. If true, the embedding layer will be updated by incremental
@@ -181,8 +164,6 @@ class Embedding(Layer):
         distribute_strategy: Used when creating ShadowVariable.
         keep_distribution: Bool. If true, save and restore python object with
           devices information. Default is false.
-        short_file_name: Bool. If True, the file name will not use scope name as prefix and create_slots will not
-          use op_name to avoid file name over 255. the default is False to keep the same behavior as before.
     """
 
     try:
@@ -195,7 +176,7 @@ class Embedding(Layer):
     self.embedding_size = embedding_size
     self.combiner = combiner
     if initializer is None:
-      initializer = RandomNormal()
+      initializer = tf.keras.initializers.RandomNormal()
     partitioner = kwargs.get('partitioner', devar.default_partition_fn)
     trainable = kwargs.get('trainable', True)
     self.max_norm = kwargs.get('max_norm', None)
@@ -218,8 +199,7 @@ class Embedding(Layer):
                                     kv_creator=kwargs.get('kv_creator', None),
                                     restrict_policy=kwargs.get(
                                         'restrict_policy', None),
-                                    bp_v2=kwargs.get('bp_v2', False),
-                                    short_file_name=short_file_name)
+                                    bp_v2=kwargs.get('bp_v2', False))
 
       self.distribute_strategy = kwargs.get('distribute_strategy', None)
       shadow_name = name + '-shadow' if name else 'ShadowVariable'
@@ -283,8 +263,7 @@ class Embedding(Layer):
 
     Args:
       ids: feature ids of the input. It should be same dtype as the key_dtype
-        of the layer. ids must be unique or set with_unique to true in the GPU case
-        due to the default kv is HKV hashtable and HKV requires unique key
+        of the layer.
 
     Returns:
       A embedding output with shape (shape(ids), embedding_size).
@@ -296,10 +275,10 @@ class Embedding(Layer):
   def get_config(self):
     _initializer = self.params.initializer
     if _initializer is None:
-      _initializer = Zeros()
+      _initializer = tf.keras.initializers.Zeros()
     _max_norm = None
-    if isinstance(self.max_norm, constraints.Constraint):
-      _max_norm = constraints.serialize(self.max_norm)
+    if isinstance(self.max_norm, tf.keras.constraints.Constraint):
+      _max_norm = tf.keras.constraints.serialize(self.max_norm)
 
     if self.params.restrict_policy:
       _restrict_policy = self.params.restrict_policy.__class__
@@ -316,7 +295,7 @@ class Embedding(Layer):
         'combiner':
             self.combiner,
         'initializer':
-            serialize(_initializer),
+            tf.keras.initializers.serialize(_initializer),
         'devices':
             self.params.devices if self.keep_distribution else None,
         'name':
@@ -515,10 +494,10 @@ class FieldWiseEmbedding(Embedding):
   def get_config(self):
     _initializer = self.params.initializer
     if _initializer is None:
-      _initializer = Zeros()
+      _initializer = tf.keras.initializers.Zeros()
     _max_norm = None
-    if isinstance(self.max_norm, constraints.Constraint):
-      _max_norm = constraints.serialize(self.max_norm)
+    if isinstance(self.max_norm, tf.keras.constraints.Constraint):
+      _max_norm = tf.keras.constraints.serialize(self.max_norm)
 
     config = {
         'embedding_size': self.embedding_size,
@@ -527,7 +506,7 @@ class FieldWiseEmbedding(Embedding):
         'combiner': self.combiner,
         'key_dtype': self.params.key_dtype,
         'value_dtype': self.params.value_dtype,
-        'initializer': serialize(_initializer),
+        'initializer': tf.keras.initializers.serialize(_initializer),
         'devices': self.params.devices,
         'name': self.name,
         'trainable': self.trainable,

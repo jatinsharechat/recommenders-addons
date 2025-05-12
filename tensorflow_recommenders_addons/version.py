@@ -29,14 +29,14 @@ def is_arm64():
 # Required TensorFlow version [min, max]
 if (is_macos() and is_arm64()):
   MIN_TF_VERSION = "2.15.1"
-  MAX_TF_VERSION = "2.16.2"
+  MAX_TF_VERSION = "2.15.1"
 else:
   MIN_TF_VERSION = "2.11.0"
-  MAX_TF_VERSION = "2.16.2"
+  MAX_TF_VERSION = "2.15.1"
 
 # We follow Semantic Versioning (https://semver.org/)
 _MAJOR_VERSION = "0"
-_MINOR_VERSION = "8"
+_MINOR_VERSION = "7"
 _PATCH_VERSION = "1"
 
 # When building releases, we can update this value on the release branch to
@@ -44,7 +44,7 @@ _PATCH_VERSION = "1"
 # stable release (indicated by `_VERSION_SUFFIX = ''`). Outside the context of a
 # release branch, the current version is by default assumed to be a
 # 'development' version, labeled 'dev'.
-_VERSION_SUFFIX = "dev"
+_VERSION_SUFFIX = ""
 
 # Example, '0.1.0-dev'
 __version__ = ".".join([_MAJOR_VERSION, _MINOR_VERSION, _PATCH_VERSION])

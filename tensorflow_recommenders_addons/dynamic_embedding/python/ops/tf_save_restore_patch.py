@@ -15,17 +15,18 @@
 # lint-as: python3
 """patch on tensorflow"""
 
-import inspect
 import functools
 import os.path
-from packaging import version
 import re
 
 from tensorflow_recommenders_addons import dynamic_embedding as de
 from tensorflow_recommenders_addons.dynamic_embedding.python.ops.dynamic_embedding_variable \
   import load_de_variable_from_file_system
 
-from tensorflow import version as tf_version
+try:
+  from keras.saving.saved_model import save as keras_saved_model_save
+except:
+  keras_saved_model_save = None
 from tensorflow.core.protobuf import saver_pb2
 from tensorflow.python.client import session
 from tensorflow.python.eager import context
@@ -42,16 +43,20 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.platform import tf_logging
 from tensorflow.python.training import saver
 from tensorflow.python.training import training_util
-if version.parse(tf_version.VERSION) >= version.parse("2.10"):
+try:  # tf version >= 2.10.0
   from tensorflow.python.checkpoint import checkpoint_management
   from tensorflow.python.checkpoint import checkpoint_options
   from tensorflow.python.checkpoint import functional_saver
-else:
+except:
   from tensorflow.python.training import checkpoint_management
   from tensorflow.python.training.saving import checkpoint_options
   from tensorflow.python.training.saving import functional_saver
 from tensorflow.python.util import compat
 from tensorflow.python.util import nest
+
+tf_original_save_func = tf_saved_model_save.save
+if keras_saved_model_save is not None:
+  keras_original_save_func = keras_saved_model_save.save
 
 de_fs_saveable_class_names = [
     '_DynamicEmbeddingVariabelFileSystemSaveable',
@@ -108,127 +113,123 @@ def _de_var_fs_restore_fn(trackables, merged_prefix):
   return load_ops.as_list()
 
 
-if version.parse(tf_version.VERSION) <= version.parse("2.15"):
+class _DynamicEmbeddingSingleDeviceSaver(functional_saver._SingleDeviceSaver):
 
-  class _DynamicEmbeddingSingleDeviceSaver(functional_saver._SingleDeviceSaver):
+  def save(self, file_prefix, options=None):
+    """Save the saveable objects to a checkpoint with `file_prefix`.
 
-    def save(self, file_prefix, options=None):
-      """Save the saveable objects to a checkpoint with `file_prefix`.
+    Args:
+      file_prefix: A string or scalar string Tensor containing the prefix to
+        save under.
+      options: Optional `CheckpointOptions` object.
+    Returns:
+      An `Operation`, or None when executing eagerly.
+    """
+    options = options or checkpoint_options.CheckpointOptions()
+    tensor_names = []
+    tensors = []
+    tensor_slices = []
+    save_ops = tf_utils.ListWrapper([])
+    variables_folder_dir = string_ops.regex_replace(file_prefix,
+                                                    pattern='/([^/]*)/([^/]*)$',
+                                                    rewrite='')
+    for saveable in self._saveable_objects:
+      if type(saveable).__name__ in de_fs_sub_saveable_class_names:
+        if saveable._saver_config.save_path:
+          de_variable_folder_dir = saveable._saver_config.save_path
+        else:
+          de_variable_folder_dir = string_ops.string_join(
+              [variables_folder_dir, 'TFRADynamicEmbedding'], separator='/')
 
-      Args:
-        file_prefix: A string or scalar string Tensor containing the prefix to
-          save under.
-        options: Optional `CheckpointOptions` object.
-      Returns:
-        An `Operation`, or None when executing eagerly.
-      """
-      options = options or checkpoint_options.CheckpointOptions()
-      tensor_names = []
-      tensors = []
-      tensor_slices = []
-      save_ops = tf_utils.ListWrapper([])
-      variables_folder_dir = string_ops.regex_replace(
-          file_prefix, pattern='/([^/]*)/([^/]*)$', rewrite='')
-      for saveable in self._saveable_objects:
-        if type(saveable).__name__ in de_fs_sub_saveable_class_names:
+        # Rewrite saved file name by user specified node information when use multi process distributed training such as horovod.
+        # Because table shards in different process couldn't touch each other, all origin shards name would be '_mht_1of1'.
+        save_file_name = re.sub(
+            r'_mht_([^/]*)of([^/]*)',
+            '_mht_' + str(saveable.local_shard_idx + 1) + 'of' +
+            str(saveable.local_shard_num) + '_rank' + str(saveable.proc_rank) +
+            '_size' + str(saveable.proc_size), saveable.op._name)
+        _DynamicEmbeddingShardSaveable_save_op = saveable.op.save_to_file_system(
+            de_variable_folder_dir,
+            file_name=save_file_name,
+            buffer_size=saveable._saver_config.buffer_size)
+        save_ops.as_list().append(_DynamicEmbeddingShardSaveable_save_op)
+      for spec in saveable.specs:
+        tensor = spec.tensor
+        # A tensor value of `None` indicates that this SaveableObject gets
+        # recorded in the object graph, but that no value is saved in the
+        # checkpoint.
+        if tensor is not None:
+          tensor_names.append(spec.name)
+          tensors.append(tensor)
+          tensor_slices.append(spec.slice_spec)
+    save_device = options.experimental_io_device or "cpu:0"
+    with ops.device(save_device):
+      tf_save_op = io_ops.save_v2(file_prefix, tensor_names, tensor_slices,
+                                  tensors)
+    save_ops.as_list().append(tf_save_op)
+    return control_flow_ops.group(save_ops.as_list())
+
+  def restore(self, file_prefix, options=None):
+    """Restore the saveable objects from a checkpoint with `file_prefix`.
+
+    Args:
+      file_prefix: A string or scalar string Tensor containing the prefix for
+        files to read from.
+      options: Optional `CheckpointOptions` object.
+
+    Returns:
+      A dictionary mapping from SaveableObject names to restore operations.
+    """
+    options = options or checkpoint_options.CheckpointOptions()
+    restore_specs = []
+    tensor_structure = []
+    restore_ops = {}
+    variables_folder_dir = string_ops.regex_replace(file_prefix,
+                                                    pattern='/([^/]*)$',
+                                                    rewrite='')
+
+    for saveable in self._saveable_objects:
+      saveable_class_name = type(saveable).__name__
+      if saveable_class_name == '_DynamicEmbeddingVariabelFileSystemSaveable':
+        with ops.name_scope(saveable._restore_name,
+                            "dynamic_embedding_restore"):
           if saveable._saver_config.save_path:
             de_variable_folder_dir = saveable._saver_config.save_path
           else:
             de_variable_folder_dir = string_ops.string_join(
                 [variables_folder_dir, 'TFRADynamicEmbedding'], separator='/')
+          restore_ops[saveable.name] = load_de_variable_from_file_system(
+              saveable.op, de_variable_folder_dir, saveable.proc_size,
+              saveable.proc_rank, saveable._saver_config.buffer_size)
 
-          # Rewrite saved file name by user specified node information when use multi process distributed training such as horovod.
-          # Because table shards in different process couldn't touch each other, all origin shards name would be '_mht_1of1'.
-          save_file_name = re.sub(
-              r'_mht_([^/]*)of([^/]*)',
-              '_mht_' + str(saveable.local_shard_idx + 1) + 'of' +
-              str(saveable.local_shard_num) + '_rank' +
-              str(saveable.proc_rank) + '_size' + str(saveable.proc_size),
-              saveable.op._name)
-          _DynamicEmbeddingShardSaveable_save_op = saveable.op.save_to_file_system(
-              de_variable_folder_dir,
-              file_name=save_file_name,
-              buffer_size=saveable._saver_config.buffer_size)
-          save_ops.as_list().append(_DynamicEmbeddingShardSaveable_save_op)
-        for spec in saveable.specs:
-          tensor = spec.tensor
-          # A tensor value of `None` indicates that this SaveableObject gets
-          # recorded in the object graph, but that no value is saved in the
-          # checkpoint.
-          if tensor is not None:
-            tensor_names.append(spec.name)
-            tensors.append(tensor)
-            tensor_slices.append(spec.slice_spec)
-      save_device = options.experimental_io_device or "cpu:0"
-      with ops.device(save_device):
-        tf_save_op = io_ops.save_v2(file_prefix, tensor_names, tensor_slices,
-                                    tensors)
-      save_ops.as_list().append(tf_save_op)
-      return control_flow_ops.group(save_ops.as_list())
-
-    def restore(self, file_prefix, options=None):
-      """Restore the saveable objects from a checkpoint with `file_prefix`.
-
-      Args:
-        file_prefix: A string or scalar string Tensor containing the prefix for
-          files to read from.
-        options: Optional `CheckpointOptions` object.
-
-      Returns:
-        A dictionary mapping from SaveableObject names to restore operations.
-      """
-      options = options or checkpoint_options.CheckpointOptions()
-      restore_specs = []
-      tensor_structure = []
-      restore_ops = {}
-      variables_folder_dir = string_ops.regex_replace(file_prefix,
-                                                      pattern='/([^/]*)$',
-                                                      rewrite='')
-
-      for saveable in self._saveable_objects:
-        saveable_class_name = type(saveable).__name__
-        if saveable_class_name == '_DynamicEmbeddingVariabelFileSystemSaveable':
-          with ops.name_scope(saveable._restore_name,
-                              "dynamic_embedding_restore"):
-            if saveable._saver_config.save_path:
-              de_variable_folder_dir = saveable._saver_config.save_path
-            else:
-              de_variable_folder_dir = string_ops.string_join(
-                  [variables_folder_dir, 'TFRADynamicEmbedding'], separator='/')
-            restore_ops[saveable.name] = load_de_variable_from_file_system(
-                saveable.op, de_variable_folder_dir, saveable.proc_size,
-                saveable.proc_rank, saveable._saver_config.buffer_size)
-
-      _unified_restore_saveable_objects = []
-      for saveable in self._saveable_objects:
-        _unified_restore_saveable_objects.append(saveable)
-        saveable_tensor_structure = []
-        tensor_structure.append(saveable_tensor_structure)
-        for spec in saveable.specs:
-          saveable_tensor_structure.append(spec.name)
-          restore_specs.append((spec.name, spec.slice_spec, spec.dtype))
-      tensor_names, tensor_slices, tensor_dtypes = zip(*restore_specs)
-      restore_device = options.experimental_io_device or "cpu:0"
-      with ops.device(restore_device):
-        restored_tensors = io_ops.restore_v2(file_prefix, tensor_names,
-                                             tensor_slices, tensor_dtypes)
-      structured_restored_tensors = nest.pack_sequence_as(
-          tensor_structure, restored_tensors)
-      for saveable, restored_tensors in zip(_unified_restore_saveable_objects,
-                                            structured_restored_tensors):
-        saveable_class_name = type(saveable).__name__
-        if (saveable_class_name not in de_fs_saveable_class_names) and (
-            saveable_class_name not in de_fs_sub_saveable_class_names):
-          restore_ops[saveable.name] = saveable.restore(restored_tensors,
-                                                        restored_shapes=None)
-        elif (saveable_class_name in de_fs_saveable_class_names):
-          restore_ops[saveable.name] = control_flow_ops.group([
-              saveable.restore(restored_tensors, restored_shapes=None),
-              restore_ops[saveable.name]
-          ])
-      return restore_ops
-else:
-  print(" _SingleDeviceSaver removed after tf version 2.15")
+    _unified_restore_saveable_objects = []
+    for saveable in self._saveable_objects:
+      _unified_restore_saveable_objects.append(saveable)
+      saveable_tensor_structure = []
+      tensor_structure.append(saveable_tensor_structure)
+      for spec in saveable.specs:
+        saveable_tensor_structure.append(spec.name)
+        restore_specs.append((spec.name, spec.slice_spec, spec.dtype))
+    tensor_names, tensor_slices, tensor_dtypes = zip(*restore_specs)
+    restore_device = options.experimental_io_device or "cpu:0"
+    with ops.device(restore_device):
+      restored_tensors = io_ops.restore_v2(file_prefix, tensor_names,
+                                           tensor_slices, tensor_dtypes)
+    structured_restored_tensors = nest.pack_sequence_as(tensor_structure,
+                                                        restored_tensors)
+    for saveable, restored_tensors in zip(_unified_restore_saveable_objects,
+                                          structured_restored_tensors):
+      saveable_class_name = type(saveable).__name__
+      if (saveable_class_name not in de_fs_saveable_class_names) and (
+          saveable_class_name not in de_fs_sub_saveable_class_names):
+        restore_ops[saveable.name] = saveable.restore(restored_tensors,
+                                                      restored_shapes=None)
+      elif (saveable_class_name in de_fs_saveable_class_names):
+        restore_ops[saveable.name] = control_flow_ops.group([
+            saveable.restore(restored_tensors, restored_shapes=None),
+            restore_ops[saveable.name]
+        ])
+    return restore_ops
 
 
 class _DynamicEmbeddingSaver(saver.Saver):
@@ -560,24 +561,22 @@ class _DynamicEmbeddingSaver(saver.Saver):
 
 
 def patch_on_tf_save_restore():
-  if version.parse(tf_version.VERSION) < version.parse("2.11"):
-    functional_saver._SingleDeviceSaver = _DynamicEmbeddingSingleDeviceSaver
-  else:
+  try:
     from tensorflow.python.saved_model.registration.registration import register_checkpoint_saver
     class_obj = de.Variable
     predicate = lambda x: isinstance(x, class_obj)
-    prekwargs = {
-        "package": "DECustomSaver",
-        "name": class_obj.__name__,
-        "predicate": predicate,
-        "save_fn": _de_var_fs_save_fn,
-        "restore_fn": _de_var_fs_restore_fn,
-        "strict_predicate_restore": False
-    }
-    rcs_sig = inspect.signature(register_checkpoint_saver)
-    kwargs = {}
-    for param in rcs_sig.parameters.values():
-      k_name = param.name
-      kwargs[k_name] = prekwargs[k_name]
-    register_checkpoint_saver(**kwargs)
+    register_checkpoint_saver("DECustomSaver",
+                              name=class_obj.__name__,
+                              predicate=predicate,
+                              save_fn=_de_var_fs_save_fn,
+                              restore_fn=_de_var_fs_restore_fn,
+                              strict_predicate_restore=False)
+  except:
+    functional_saver._SingleDeviceSaver = _DynamicEmbeddingSingleDeviceSaver
   saver.Saver = _DynamicEmbeddingSaver
+  # # Replace origin saving function is too dangerous.
+  # tf_saved_model_save.save = functools.partial(de.keras.models._de_keras_save_func,
+  #                                              tf_original_save_func)
+  # if keras_saved_model_save is not None:
+  #   keras_saved_model_save.save = functools.partial(de.keras.models._de_keras_save_func,
+  #                                                   keras_original_save_func)

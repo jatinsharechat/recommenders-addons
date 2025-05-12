@@ -150,7 +150,7 @@ def get_tf_version_integer():
         '\nPlease install a TensorFlow on your compiling machine, '
         'The compiler needs to know the version of Tensorflow '
         'and get TF c++ headers according to the installed TensorFlow. '
-        '\nNote: Only TensorFlow 2.16.2 2.15.1 2.8.3, 2.6.3, 2.4.1, 1.15.2 are supported.'
+        '\nNote: Only TensorFlow 2.15.1 2.8.3, 2.6.3, 2.4.1, 1.15.2 are supported.'
     )
   try:
     major, minor, patch = version.split('.')

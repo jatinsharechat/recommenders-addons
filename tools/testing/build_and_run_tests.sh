@@ -31,8 +31,6 @@ if [ "$TF_VERSION" = "2.6.3" ] ; then
   python -m pip install numpy==1.19.5 --force-reinstall
 fi
 
-bazel clean --expunge
-
 # Avoid SystemError: initialization of _pywrap_checkpoint_reader raised unreported exception
 pip install tensorflow==$TF_VERSION
 
@@ -51,22 +49,19 @@ if ! [ -x "$(command -v nvidia-smi)" ]; then
   EXTRA_ARGS="-n auto"
 fi
 
-# only test and run horovod on GPU
-if [ "$TF_NEED_CUDA" -ne 0 ]; then
-  # Lack of HorovodJoin CPU kernels when install Horovod with NCCL
-  if [ "$(uname)" != "Darwin" ]; then
-    # Mac only with MPI
-    python -m pip uninstall horovod -y
-    bash /install/install_horovod.sh $HOROVOD_VERSION --only-cpu
-  fi
-  # TODO(jamesrong): Test on GPU.
-  CUDA_VISIBLE_DEVICES="" mpirun -np 2 -H localhost:2 --allow-run-as-root pytest -v ./tensorflow_recommenders_addons/dynamic_embedding/python/kernel_tests/horovod_sync_train_test.py
-  # Reinstall Horovod after tests
-  if [ "$(uname)" != "Darwin" ]; then
-    # Mac only with MPI
-    python -m pip uninstall horovod -y
-    bash /install/install_horovod.sh $HOROVOD_VERSION
-  fi
+# Lack of HorovodJoin CPU kernels when install Horovod with NCCL
+if [ "$(uname)" != "Darwin" ]; then
+  # Mac only with MPI
+  python -m pip uninstall horovod -y
+  bash /install/install_horovod.sh $HOROVOD_VERSION --only-cpu
+fi
+# TODO(jamesrong): Test on GPU.
+CUDA_VISIBLE_DEVICES="" mpirun -np 2 -H localhost:2 --allow-run-as-root pytest -v ./tensorflow_recommenders_addons/dynamic_embedding/python/kernel_tests/horovod_sync_train_test.py
+# Reinstall Horovod after tests
+if [ "$(uname)" != "Darwin" ]; then
+  # Mac only with MPI
+  python -m pip uninstall horovod -y
+  bash /install/install_horovod.sh $HOROVOD_VERSION
 fi
 
 IGNORE_HKV=""
@@ -81,9 +76,8 @@ fi
 
 python -m pytest -v -s --functions-durations=20 --modules-durations=5 $IGNORE_HKV $SKIP_CUSTOM_OP_TESTS_FLAG $EXTRA_ARGS ./tensorflow_recommenders_addons/dynamic_embedding/python/kernel_tests/
 
+
+
 # Release disk space
 bazel clean --expunge
-sudo rm -f ./tensorflow_recommenders_addons/dynamic_embedding/core/_*_ops.so
-sudo rm -rf /tmp/*
-apt-get clean && rm -rf /var/lib/apt/lists/*
-sudo rm -rf /var/log/*
+rm -f ./tensorflow_recommenders_addons/dynamic_embedding/core/_*_ops.so
