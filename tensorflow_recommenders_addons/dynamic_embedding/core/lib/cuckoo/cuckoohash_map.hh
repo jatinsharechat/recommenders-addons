@@ -968,7 +968,7 @@ class cuckoohash_map {
 
    private:
     std::atomic_flag lock_;
-    std::atomic<counter_type> elem_counter_;
+    counter_type elem_counter_;
     bool is_migrated_;
   };
 
