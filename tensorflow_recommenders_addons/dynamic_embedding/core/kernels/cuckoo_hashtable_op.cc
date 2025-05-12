@@ -348,9 +348,11 @@ class CuckooHashTableOfTensors final : public LookupInterface {
     const size_t table_size = table_->size();
     size_t search_offset = 0;
     size_t total_saved = 0;
+    cout << "table size: " << table_->size() << " for: " << filepath << endl;
     while (search_offset < table_size) {
       auto dump_counter = table_->dump((K*)key_buffer, (V*)value_buffer,
                                        search_offset, buffer_size);
+      count << "    dump_counter: " << dump_counter << endl;
       search_offset += dump_counter;
       key_offset += dump_counter * sizeof(K);
       value_offset += dump_counter * value_len;
