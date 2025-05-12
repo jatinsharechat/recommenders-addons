@@ -364,7 +364,9 @@ class cuckoohash_map {
     }
     counter_type s = 0;
     for (spinlock &lock : get_current_locks()) {
+      lock.lock();
       s += lock.elem_counter();
+      lock.unlock();
     }
     assert(s >= 0);
     return static_cast<size_type>(s);
