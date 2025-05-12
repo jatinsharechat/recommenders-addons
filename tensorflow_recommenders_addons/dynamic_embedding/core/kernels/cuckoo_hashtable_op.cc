@@ -27,6 +27,7 @@ limitations under the License.
 #include "tensorflow_recommenders_addons/dynamic_embedding/core/kernels/lookup_impl/lookup_table_op_cpu.h"
 #include "tensorflow_recommenders_addons/dynamic_embedding/core/utils/types.h"
 #include "tensorflow_recommenders_addons/dynamic_embedding/core/utils/utils.h"
+#include "tensorflow_recommenders_addons/dynamic_embedding/core/lib/cuckoo/cuchoohash_map.hh"
 
 namespace tensorflow {
 namespace recommenders_addons {
