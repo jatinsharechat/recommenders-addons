@@ -379,7 +379,7 @@ class CuckooHashTableOfTensors final : public LookupInterface {
     TF_RETURN_IF_ERROR(key_writer->Sync());
     TF_RETURN_IF_ERROR(value_writer->Sync());
 
-    LOG(INFO) << "Finish jatin/v071 saving " << total_saved << " keys and values to "
+    LOG(INFO) << "Finish jatin/embedding-save saving " << total_saved << " keys and values to "
               << key_filepath << " and " << value_filepath << " in total.";
 
     if (need_tmp_file) {
