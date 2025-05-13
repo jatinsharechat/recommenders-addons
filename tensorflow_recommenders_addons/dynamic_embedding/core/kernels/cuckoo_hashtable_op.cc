@@ -123,7 +123,7 @@ struct LaunchTensorsInsert<CPUDevice, K, V> {
 //        table->insert_or_assign(key_flat(i), value_flat, value_dim_, i);
 //      }
 //    };
-    std::cout << "table size insert call:" << table->size() << std::endl;
+    std::cout << "table size accum call:" << table->size() << " -- keys: " << total << " -- values: " << value_flat.size() << std::endl;
     auto shard = [this, &table, key_flat, &value_flat](int64 begin, int64 end) {
       for (int64 i = begin; i < end; ++i) {
         table->insert_or_assign(key_flat(i), value_flat, value_dim_, i);
@@ -177,7 +177,7 @@ struct LaunchTensorsAccum<CPUDevice, K, V> {
 //                               exist_flat(i), value_dim_, i);
 //      }
 //    };
-    std::cout << "table size accum call:" << table->size() << std::endl;
+    std::cout << "table size accum call:" << table->size() << " -- keys: " << total << " -- values: " << values_or_deltas_flat.size() << std::endl;
     auto shard = [this, &table, key_flat, &values_or_deltas_flat, &exist_flat](
                      int64 begin, int64 end) {
       for (int64 i = begin; i < end; ++i) {
