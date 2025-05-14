@@ -351,9 +351,9 @@ class CuckooHashTableOfTensors final : public LookupInterface {
     size_t total_saved = 0;
 
     std::cout << "get_actual_table_size(): " << actual_table_size << " -- size(): " << table_size << " -- for: " << filepath << std::endl;
-//    if (actual_table_size != table_size) {
-//        std::cout << "get_actual_table_size(): " << actual_table_size << " -- size(): " << table_size << " -- for: " << filepath << std::endl;
-//    }
+    if (actual_table_size != table_size) {
+        std::cout << "Mismatch in table sizes!" << std::endl;
+    }
     while (search_offset < actual_table_size) {
       auto dump_counter = table_->dump((K*)key_buffer, (V*)value_buffer,
                                        search_offset, buffer_size);
