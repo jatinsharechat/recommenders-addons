@@ -234,6 +234,7 @@ class CuckooHashTableOfTensors final : public LookupInterface {
 
   Status DoInsert(bool clear, OpKernelContext* ctx, const Tensor& keys,
                   const Tensor& values) {
+    mutex_lock l(mu_);
     int64 value_dim = value_shape_.dim_size(0);
 
     if (clear) {
@@ -248,6 +249,7 @@ class CuckooHashTableOfTensors final : public LookupInterface {
 
   Status DoAccum(bool clear, OpKernelContext* ctx, const Tensor& keys,
                  const Tensor& values_or_deltas, const Tensor& exists) {
+    mutex_lock l(mu_);
     int64 value_dim = value_shape_.dim_size(0);
 
     if (clear) {
@@ -310,6 +312,7 @@ class CuckooHashTableOfTensors final : public LookupInterface {
   Status SaveToFileSystemImpl(FileSystem* fs, const size_t value_dim,
                               const string& filepath, const size_t buffer_size,
                               bool append_to_file) {
+    mutex_lock l(mu_);
     std::unique_ptr<WritableFile> key_writer;
     std::unique_ptr<WritableFile> value_writer;
     const string key_filepath(filepath + "-keys");
@@ -528,6 +531,7 @@ class CuckooHashTableOfTensors final : public LookupInterface {
   size_t runtime_dim_;
   cpu::TableWrapperBase<K, V>* table_ = nullptr;
   size_t init_size_;
+  mutex mu_;
 };
 
 }  // namespace lookup
