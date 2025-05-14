@@ -363,14 +363,7 @@ class cuckoohash_map {
       return 0;
     }
     counter_type s = 0;
-    int num_prints = 0;
     for (spinlock &lock : get_current_locks()) {
-      if (!lock.is_migrated()) {
-        while (num_prints < 5) {
-          std::cout << "Lock not migrated!" << std::endl;
-          num_prints++;
-        }
-      }
       s += lock.elem_counter();
     }
     assert(s >= 0);

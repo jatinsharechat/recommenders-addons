@@ -118,12 +118,6 @@ struct LaunchTensorsInsert<CPUDevice, K, V> {
     int64 total = key_flat.size();
     const auto value_flat = values.flat_inner_dims<V, 2>();
 
-//    auto shard = [this, &table, key_flat, &value_flat, &total](int64 begin, int64 end) {
-//      for (int64 i = begin; i < end && i < total; ++i) {
-//        table->insert_or_assign(key_flat(i), value_flat, value_dim_, i);
-//      }
-//    };
-    std::cout << "[before] table size insert call:" << table->size() << " -- keys: " << total << " -- values: " << value_flat.size() << std::endl;
     auto shard = [this, &table, key_flat, &value_flat](int64 begin, int64 end) {
       for (int64 i = begin; i < end; ++i) {
         table->insert_or_assign(key_flat(i), value_flat, value_dim_, i);
@@ -149,9 +143,6 @@ struct LaunchTensorsInsert<CPUDevice, K, V> {
     }
     int64 slices = static_cast<int64>(total / worker_threads.num_threads) + 1;
     Shard(num_worker_threads, worker_threads.workers, total, slices, shard);
-
-    std::cout << "[after] table size insert call:" << table->size() << std::endl;
-
   }
 
  private:
@@ -173,14 +164,6 @@ struct LaunchTensorsAccum<CPUDevice, K, V> {
     const auto values_or_deltas_flat = values_or_deltas.flat_inner_dims<V, 2>();
     const auto exist_flat = exists.flat<bool>();
 
-//    auto shard = [this, &table, key_flat, &values_or_deltas_flat, &exist_flat, &total](
-//                     int64 begin, int64 end) {
-//      for (int64 i = begin; i < end && i < total; ++i) {
-//        table->insert_or_accum(key_flat(i), values_or_deltas_flat,
-//                               exist_flat(i), value_dim_, i);
-//      }
-//    };
-    std::cout << "table size accum call:" << table->size() << " -- keys: " << total << " -- values: " << values_or_deltas_flat.size() << std::endl;
     auto shard = [this, &table, key_flat, &values_or_deltas_flat, &exist_flat](
                      int64 begin, int64 end) {
       for (int64 i = begin; i < end; ++i) {
@@ -192,8 +175,6 @@ struct LaunchTensorsAccum<CPUDevice, K, V> {
     int64 slices = static_cast<int64>(total / worker_threads.num_threads) + 1;
     Shard(worker_threads.num_threads, worker_threads.workers, total, slices,
           shard);
-
-    std::cout << "[after] table size accum call:" << table->size() << std::endl;
   }
 
  private:
@@ -253,7 +234,6 @@ class CuckooHashTableOfTensors final : public LookupInterface {
 
   Status DoInsert(bool clear, OpKernelContext* ctx, const Tensor& keys,
                   const Tensor& values) {
-    mutex_lock l(mu_);
     int64 value_dim = value_shape_.dim_size(0);
 
     if (clear) {
@@ -268,7 +248,6 @@ class CuckooHashTableOfTensors final : public LookupInterface {
 
   Status DoAccum(bool clear, OpKernelContext* ctx, const Tensor& keys,
                  const Tensor& values_or_deltas, const Tensor& exists) {
-    mutex_lock l(mu_);
     int64 value_dim = value_shape_.dim_size(0);
 
     if (clear) {
@@ -331,7 +310,6 @@ class CuckooHashTableOfTensors final : public LookupInterface {
   Status SaveToFileSystemImpl(FileSystem* fs, const size_t value_dim,
                               const string& filepath, const size_t buffer_size,
                               bool append_to_file) {
-    mutex_lock l(mu_);
     std::unique_ptr<WritableFile> key_writer;
     std::unique_ptr<WritableFile> value_writer;
     const string key_filepath(filepath + "-keys");
@@ -368,16 +346,16 @@ class CuckooHashTableOfTensors final : public LookupInterface {
     char* value_buffer = value_buffer_vector.data();
 
     const size_t table_size = table_->size();
+    const size_t actual_table_size = table_->get_actual_table_size();
     size_t search_offset = 0;
     size_t total_saved = 0;
     auto zero_counts = 0;
-    std::cout << "table size: " << table_->size() << " for: " << filepath << std::endl;
-    while (search_offset < table_size) {
+    if (actual_table_size != table_size) {
+        std::cout << "get_actual_table_size(): " << actual_table_size << " -- size(): " << table_size << " -- for: " << filepath << std::endl;
+    }
+    while (search_offset < actual_table_size) {
       auto dump_counter = table_->dump((K*)key_buffer, (V*)value_buffer,
                                        search_offset, buffer_size);
-      if (zero_counts == 0) {
-        std::cout << "   dump_counter: " << dump_counter << std::endl;
-      }
       if (dump_counter == 0) {
         zero_counts = 1;
       }
@@ -552,7 +530,6 @@ class CuckooHashTableOfTensors final : public LookupInterface {
   size_t runtime_dim_;
   cpu::TableWrapperBase<K, V>* table_ = nullptr;
   size_t init_size_;
-  mutex mu_;
 };
 
 }  // namespace lookup
