@@ -375,7 +375,7 @@ class CuckooHashTableOfTensors final : public LookupInterface {
       total_saved += dump_counter;
       if (dump_counter == 0){
         if (actual_table_size != table_size) {
-            std:cout << "dump_counter == 0 with different sizes!" << std::endl;
+            std::cout << "dump_counter == 0 with different sizes!" << std::endl;
         }
         break;
       }
