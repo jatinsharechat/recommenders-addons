@@ -140,7 +140,7 @@ class TableWrapperBase {
                       const size_t search_length) const {
     return 0;
   }
-  virtual size_t get_actual_table_size() const {}
+  virtual size_t get_actual_table_size() const { return 0; }
   virtual size_t size() const { return 0; }
   virtual void clear() {}
   virtual bool erase(const K& key) { return false; }
