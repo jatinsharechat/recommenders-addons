@@ -18,13 +18,10 @@ Dynamic Embedding is designed for Large-scale Sparse Weights Training.
 See [Sparse Domain Isolation](https://github.com/tensorflow/community/pull/237)
 """
 
-from packaging import version
-
 from tensorflow_recommenders_addons import dynamic_embedding as de
 from tensorflow_recommenders_addons.dynamic_embedding.python.ops.shadow_embedding_ops import DEResourceVariable
 from tensorflow_recommenders_addons.dynamic_embedding.python.ops.embedding_weights import EmbeddingWeights
 
-from tensorflow import version as tf_version
 from tensorflow.python.eager import tape as tape_record
 if not hasattr(tape_record, 'record_operation'):
   # tf version >= 2.13.0
@@ -33,31 +30,31 @@ from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import sparse_tensor
 from tensorflow.python.framework import tensor_shape
-if version.parse(tf_version.VERSION) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.framework.tensor import Tensor
-else:
+except:
   from tensorflow.python.framework.ops import Tensor
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import sparse_ops
 from tensorflow.python.ops import variable_scope
-if version.parse(tf_version.VERSION) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.ops.array_ops_stack import stack
-else:
+except:
   from tensorflow.python.ops.array_ops import stack
-if version.parse(tf_version.VERSION) >= version.parse("2.10"):
+try:  # tf version >= 2.10.0
   from tensorflow.python.trackable import base as trackable
-else:
+except:
   from tensorflow.python.training.tracking import base as trackable
-if version.parse(tf_version.VERSION) >= version.parse("2.11"):
-  # The data_structures has been moved to the new package in tf 2.11
+try:  # The data_structures has been moved to the new package in tf 2.11
   from tensorflow.python.trackable import data_structures
-else:
+except:
   from tensorflow.python.training.tracking import data_structures
 
-if version.parse(tf_version.VERSION) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.distribute import distribute_lib as distribute_ctx
-else:
+  assert hasattr(distribute_ctx, 'has_strategy')
+except:
   from tensorflow.python.distribute import distribution_strategy_context as distribute_ctx
 
 
@@ -97,17 +94,14 @@ def embedding_lookup_unique(params,
     ids_flat = array_ops.reshape(ids, math_ops.reduce_prod(shape,
                                                            keepdims=True))
     unique_ids, idx = array_ops.unique(ids_flat)
-    result = de.embedding_lookup(params,
-                                 unique_ids,
-                                 partition_strategy=partition_strategy,
-                                 name=name,
-                                 validate_indices=None,
-                                 max_norm=validate_indices,
-                                 return_trainable=return_trainable)
-    if return_trainable:
-      unique_embeddings, trainable_ = result
-    else:
-      unique_embeddings = result
+    unique_embeddings, trainable_ = de.embedding_lookup(
+        params,
+        unique_ids,
+        partition_strategy=partition_strategy,
+        name=name,
+        validate_indices=None,
+        max_norm=validate_indices,
+        return_trainable=True)
     embeddings_flat = array_ops.gather(unique_embeddings, idx)
     embeddings_shape = array_ops.concat(
         [shape, array_ops.shape(unique_embeddings)[1:]], 0)
@@ -222,12 +216,9 @@ def embedding_lookup_sparse(
 
     ids = sp_ids.values
     ids, idx = array_ops.unique(ids)
-    embeddings = params.embedding_lookup(ids,
-                                         name=name,
-                                         max_norm=max_norm,
-                                         return_trainable=return_trainable)
-    if return_trainable:
-      embeddings, trainable_ = embeddings
+    embeddings, trainable_ = params.embedding_lookup(ids,
+                                                     name=name,
+                                                     max_norm=max_norm)
 
     if embeddings.dtype in (dtypes.float16, dtypes.bfloat16):
       embeddings = math_ops.cast(embeddings, dtypes.float32)
@@ -381,7 +372,7 @@ def safe_embedding_lookup_sparse(
     if sparse_weights is not None:
       sparse_weights, _ = de.math.sparse_fill_empty_rows(sparse_weights, 1.0)
 
-    result = embedding_lookup_sparse(
+    result, trainable_ = embedding_lookup_sparse(
         embedding_weights,
         sparse_ids,
         sparse_weights,
@@ -389,10 +380,8 @@ def safe_embedding_lookup_sparse(
         partition_strategy=partition_strategy,
         name=name + "/embedding_lookup_sparse",
         max_norm=max_norm,
-        return_trainable=return_trainable,
+        return_trainable=True,
     )
-    if (return_trainable):
-      result, trainable_ = result
 
     if default_id is None:
       # Broadcast is_row_empty to the same shape as embedding_lookup_result,

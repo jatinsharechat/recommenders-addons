@@ -140,6 +140,7 @@ class TableWrapperBase {
                       const size_t search_length) const {
     return 0;
   }
+  virtual size_t get_actual_table_size() const { return 0; }
   virtual size_t size() const { return 0; }
   virtual void clear() {}
   virtual bool erase(const K& key) { return false; }
@@ -249,6 +250,18 @@ class TableWrapperOptimized final : public TableWrapperBase<K, V> {
       ++dump_counter;
     }
     return dump_counter;
+  }
+
+  size_t get_actual_table_size() const override {
+    auto lt = table_->lock_table();
+    auto search_begin = lt.begin();
+    auto search_end = lt.end();
+    size_t actual_size = 0;
+    while(search_begin != search_end) {
+        actual_size += 1;
+        ++search_begin;
+    }
+    return actual_size;
   }
 
   size_t size() const override { return table_->size(); }
@@ -375,6 +388,18 @@ class TableWrapperDefault final : public TableWrapperBase<K, V> {
       ++dump_counter;
     }
     return dump_counter;
+  }
+
+  size_t get_actual_table_size() const override {
+    auto lt = table_->lock_table();
+    auto search_begin = lt.begin();
+    auto search_end = lt.end();
+    size_t actual_size = 0;
+    while(search_begin != search_end) {
+        actual_size += 1;
+        ++search_begin;
+    }
+    return actual_size;
   }
 
   size_t size() const override { return table_->size(); }

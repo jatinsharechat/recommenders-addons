@@ -234,6 +234,7 @@ class CuckooHashTableOfTensors final : public LookupInterface {
 
   Status DoInsert(bool clear, OpKernelContext* ctx, const Tensor& keys,
                   const Tensor& values) {
+    mutex_lock l(mu_);
     int64 value_dim = value_shape_.dim_size(0);
 
     if (clear) {
@@ -248,6 +249,7 @@ class CuckooHashTableOfTensors final : public LookupInterface {
 
   Status DoAccum(bool clear, OpKernelContext* ctx, const Tensor& keys,
                  const Tensor& values_or_deltas, const Tensor& exists) {
+    mutex_lock l(mu_);
     int64 value_dim = value_shape_.dim_size(0);
 
     if (clear) {
@@ -310,6 +312,7 @@ class CuckooHashTableOfTensors final : public LookupInterface {
   Status SaveToFileSystemImpl(FileSystem* fs, const size_t value_dim,
                               const string& filepath, const size_t buffer_size,
                               bool append_to_file) {
+    mutex_lock l(mu_);
     std::unique_ptr<WritableFile> key_writer;
     std::unique_ptr<WritableFile> value_writer;
     const string key_filepath(filepath + "-keys");
@@ -346,11 +349,18 @@ class CuckooHashTableOfTensors final : public LookupInterface {
     char* value_buffer = value_buffer_vector.data();
 
     const size_t table_size = table_->size();
+    const size_t actual_table_size = table_->get_actual_table_size();
     size_t search_offset = 0;
     size_t total_saved = 0;
+
+    std::cout << "get_actual_table_size(): " << actual_table_size << " -- size(): " << table_size << " -- for: " << filepath << std::endl;
+    if (actual_table_size != table_size) {
+        std::cout << "Mismatch in table sizes!" << std::endl;
+    }
     while (search_offset < table_size) {
       auto dump_counter = table_->dump((K*)key_buffer, (V*)value_buffer,
                                        search_offset, buffer_size);
+      std::cout << "    dump_counter: " << dump_counter << std::endl;
       search_offset += dump_counter;
       key_offset += dump_counter * sizeof(K);
       value_offset += dump_counter * value_len;
@@ -363,6 +373,12 @@ class CuckooHashTableOfTensors final : public LookupInterface {
       value_buffer = value_buffer_vector.data();
       value_offset = 0;
       total_saved += dump_counter;
+      if (dump_counter == 0){
+        if (actual_table_size != table_size) {
+            std::cout << "dump_counter == 0 with different sizes!" << std::endl;
+        }
+        break;
+      }
     }
 
     if (key_offset > 0 && value_offset > 0) {
@@ -377,7 +393,7 @@ class CuckooHashTableOfTensors final : public LookupInterface {
     TF_RETURN_IF_ERROR(key_writer->Sync());
     TF_RETURN_IF_ERROR(value_writer->Sync());
 
-    LOG(INFO) << "Finish saving " << total_saved << " keys and values to "
+    LOG(INFO) << "Finish jatin/embedding-save saving " << total_saved << " keys and values to "
               << key_filepath << " and " << value_filepath << " in total.";
 
     if (need_tmp_file) {
@@ -522,6 +538,7 @@ class CuckooHashTableOfTensors final : public LookupInterface {
   size_t runtime_dim_;
   cpu::TableWrapperBase<K, V>* table_ = nullptr;
   size_t init_size_;
+  mutex mu_;
 };
 
 }  // namespace lookup

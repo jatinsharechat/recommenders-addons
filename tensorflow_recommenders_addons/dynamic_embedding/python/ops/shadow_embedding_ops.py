@@ -33,8 +33,6 @@ The `shadow_ops` submodule is designed to support usage on `tf.function`
 and modular style development, like keras.
 """
 
-from packaging import version
-
 import tensorflow as tf
 
 from tensorflow.python.distribute import distribute_lib
@@ -50,9 +48,9 @@ from tensorflow_recommenders_addons import dynamic_embedding as de
 from tensorflow_recommenders_addons.dynamic_embedding.python.ops.embedding_weights import EmbeddingWeights, \
   TrainableWrapper
 
-if version.parse(tf.__version__) >= version.parse("2.10"):
+try:  # tf version >= 2.10.0
   from tensorflow.python.trackable import base as trackable
-else:
+except:
   from tensorflow.python.training.tracking import base as trackable
 
 from tensorflow.python.distribute import distribute_utils
@@ -120,6 +118,7 @@ class ShadowVariable(EmbeddingWeights, TrainableWrapper):
                                     dtype=self.params.key_dtype,
                                     distribute_strategy=distribute_strategy,
                                     shape=tensor_shape.TensorShape(None))
+      self._track_trackable(self.ids, ids_name, overwrite=False)
     else:
       if not isinstance(ids, resource_variable_ops.ResourceVariable):
         raise TypeError('If ids is set, it needs to be a ResourceVariable')
@@ -170,12 +169,8 @@ class ShadowVariable(EmbeddingWeights, TrainableWrapper):
   def embedding_lookup(self,
                        ids,
                        name=None,
-                       max_norm=None,
-                       return_trainable=False) -> (tf.Tensor, EmbeddingWeights):
-    if return_trainable:
-      return embedding_lookup(self, ids, name, False), self
-    else:
-      return embedding_lookup(self, ids, name)
+                       max_norm=None) -> (tf.Tensor, EmbeddingWeights):
+    return embedding_lookup(self, ids, name), self
 
   def prefetch_values(self, update=False):
     if self.params.bp_v2:
@@ -449,9 +444,5 @@ class HvdVariable(EmbeddingWeights):
   def embedding_lookup(self,
                        ids,
                        name=None,
-                       max_norm=None,
-                       return_trainable=False) -> (tf.Tensor, EmbeddingWeights):
-    if return_trainable:
-      return self.__alltoall_embedding_lookup__(ids), self.shadow
-    else:
-      return self.__alltoall_embedding_lookup__(ids)
+                       max_norm=None) -> (tf.Tensor, EmbeddingWeights):
+    return self.__alltoall_embedding_lookup__(ids), self.shadow

@@ -15,8 +15,6 @@
 # lint-as: python3
 """patch on tensorflow"""
 
-from packaging import version
-
 from tensorflow_recommenders_addons import dynamic_embedding as de
 
 try:
@@ -26,14 +24,11 @@ except ImportError:
   pass  # for compatible with TF < 2.3.x
 
 try:
-  import tf_keras
-  kinit_tf = tf_keras.initializers
-except:
-  try:
-    import tensorflow
-    kinit_tf = tensorflow.keras.initializers
-  except ImportError:
-    pass  # for compatible with TF >= 2.6.x
+  import tensorflow as tf
+  kinit_tf = tf.keras.initializers
+except ImportError:
+  kinit_tf = None
+  pass  # for compatible with TF >= 2.6.x
 
 try:
   import keras as tmp_keras
@@ -42,19 +37,18 @@ except ImportError:
   kinit_K = None
   pass  # for compatible with standalone Keras
 
-from tensorflow import version as tf_version
 from tensorflow.core.framework import node_def_pb2
 from tensorflow.python.eager import context
 from tensorflow.python.framework import device as pydev
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
-if version.parse(tf_version.VERSION) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.framework.tensor import Tensor
-else:
+except:
   from tensorflow.python.framework.ops import Tensor
-if version.parse(tf_version.VERSION) >= version.parse("2.13"):
+try:  # tf version >= 2.13.0
   from tensorflow.python.framework.indexed_slices import IndexedSlices
-else:
+except:
   from tensorflow.python.framework.ops import IndexedSlices
 from tensorflow.python.keras import initializers as kinit1
 from tensorflow.python.ops import control_flow_ops
@@ -67,9 +61,9 @@ from tensorflow.python.platform import tf_logging
 from tensorflow.python.training import device_setter
 from tensorflow.python.training import optimizer
 from tensorflow.python.training import slot_creator
-if version.parse(tf_version.VERSION) >= version.parse("2.10"):
+try:  # tf version >= 2.10.0
   from tensorflow.python.checkpoint import restore as ckpt_base
-else:
+except:
   from tensorflow.python.training.tracking import base as ckpt_base
 
 _PARTITION_SHAPE = 'partition_shape'

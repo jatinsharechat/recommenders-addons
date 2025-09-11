@@ -19,7 +19,6 @@ See [Sparse Domain Isolation](https://github.com/tensorflow/community/pull/237)
 """
 
 import functools
-from packaging import version
 import re
 import typing
 import tensorflow as tf
@@ -28,9 +27,10 @@ from tensorflow_recommenders_addons import dynamic_embedding as de
 from tensorflow_recommenders_addons.dynamic_embedding.python.ops.embedding_weights import EmbeddingWeights
 from tensorflow_recommenders_addons.utils.check_platform import is_macos, is_arm64
 
-if version.parse(tf.__version__) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.distribute import distribute_lib as distribute_ctx
-else:
+  assert hasattr(distribute_ctx, 'has_strategy')
+except:
   from tensorflow.python.distribute import distribution_strategy_context as distribute_ctx
 from tensorflow.python.distribute import distribute_utils
 from tensorflow.python.distribute import values as distribute_values_lib
@@ -55,27 +55,7 @@ from tensorflow.python.eager import context
 from tensorflow.python.framework import constant_op
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
-
 from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
-
-if version.parse(tf.__version__) >= version.parse("2.16"):
-  try:  # independently import tf_keras
-    from tf_keras.initializers import Initializer
-    from tf_keras.optimizers.legacy import Optimizer as keras_OptimizerV2_legacy
-    from tf_keras.optimizers import Optimizer as keras_OptimizerV2
-  except:
-    from tensorflow.python.keras.initializers.initializers_v2 import Initializer
-    from tensorflow.python.keras.optimizers import Optimizer as keras_OptimizerV2_legacy
-    from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2 as keras_OptimizerV2
-else:
-  from tensorflow.keras.initializers import Initializer
-  if version.parse(tf.__version__) >= version.parse("2.12"):
-    from tensorflow.keras.optimizers.legacy import Optimizer as keras_OptimizerV2_legacy
-    from tensorflow.keras.optimizers import Optimizer as keras_OptimizerV2
-  else:
-    from tensorflow.keras.optimizers import Optimizer as keras_OptimizerV2_legacy
-    keras_OptimizerV2 = keras_OptimizerV2_legacy
-
 from tensorflow.python.keras.utils import tf_utils
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import bitwise_ops
@@ -89,36 +69,35 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import parsing_ops
 from tensorflow.python.ops import string_ops
 from tensorflow.python.ops import variable_scope
-if version.parse(tf.__version__) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.ops.control_flow_assert import Assert
-else:
+except:
   from tensorflow.python.ops.control_flow_ops import Assert
-if version.parse(tf.__version__) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.ops.cond import cond
-else:
+except:
   from tensorflow.python.ops.control_flow_ops import cond
-if version.parse(tf.__version__) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.ops.while_loop import while_loop
-else:
+except:
   from tensorflow.python.ops.control_flow_ops import while_loop
 from tensorflow.python.platform import tf_logging
 from tensorflow.python.training.optimizer import Optimizer
-if version.parse(tf.__version__) >= version.parse("2.10"):
+try:  # tf version >= 2.10.0
   from tensorflow.python.trackable import base
-else:
+except:
   from tensorflow.python.training.tracking import base
-if version.parse(tf.__version__) >= version.parse("2.10"):
+try:  # tf version >= 2.10.0
   from tensorflow.python.training.saving.saveable_object_util import _PythonStringStateSaveable as TF_PythonStringStateSaveable
-else:
+except:
   from tensorflow.python.training.tracking.base import PythonStringStateSaveable as TF_PythonStringStateSaveable
-if version.parse(tf.__version__) >= version.parse("2.11"):
-  # The data_structures has been moved to the new package in tf 2.11
+try:  # The data_structures has been moved to the new package in tf 2.11
   from tensorflow.python.trackable import data_structures
-else:
+except:
   from tensorflow.python.training.tracking import data_structures
-if version.parse(tf.__version__) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.trackable import python_state
-else:
+except:
   from tensorflow.python.training.tracking import python_state
 from tensorflow.python.util.tf_export import tf_export
 
@@ -497,7 +476,6 @@ class Variable(EmbeddingWeights, base.Trackable):
       kv_creator=None,
       restrict_policy=None,
       bp_v2=False,
-      short_file_name=False,
   ):
     """Creates an empty `Variable` object.
 
@@ -550,8 +528,7 @@ class Variable(EmbeddingWeights, base.Trackable):
             parameters by *adding delta* instead of *setting*, which solves the
             race condition problem among workers during backpropagation in
             large-scale distributed asynchronous training.
-          short_file_name: If True, the file name will not use scope name as prefix and create_slots will not
-            use op_name to avoid file name over 255. the default is False to keep the same behavior as before.
+
         Returns:
           A `Variable` object.
     """
@@ -559,17 +536,13 @@ class Variable(EmbeddingWeights, base.Trackable):
     self.value_dtype = value_dtype
     self.dim = dim
     self.bp_v2 = bp_v2
-    self.short_file_name = short_file_name
 
     def _get_default_devices():
-      try:
-        gpu_list = [
-            x.name
-            for x in device_lib.list_local_devices()
-            if x.device_type == "GPU"
-        ]
-      except:
-        gpu_list = []
+      gpu_list = [
+          x.name
+          for x in device_lib.list_local_devices()
+          if x.device_type == "GPU"
+      ]
       return gpu_list[0:1] or [
           "/CPU:0",
       ]
@@ -659,6 +632,7 @@ class Variable(EmbeddingWeights, base.Trackable):
       with ops.colocate_with(None, ignore_existing=True):
         for idx in range(len(self.devices)):
           with ops.device(self.devices[idx]):
+            mht = None
             if not issubclass(self.kv_creator.__class__, de.KVCreator):
               raise TypeError("config should be instance of 'config', but got ",
                               str(type(self.kv_creator)))
@@ -698,14 +672,13 @@ class Variable(EmbeddingWeights, base.Trackable):
   def embedding_lookup(self,
                        ids,
                        name=None,
-                       max_norm=None,
-                       return_trainable=False) -> (tf.Tensor, EmbeddingWeights):
+                       max_norm=None) -> (tf.Tensor, EmbeddingWeights):
     return embedding_lookup(
         self,
         ids,
         name=name + '/embedding_lookup',
         max_norm=max_norm,
-        return_trainable=return_trainable,
+        return_trainable=True,
     )
 
   @property
@@ -718,7 +691,10 @@ class Variable(EmbeddingWeights, base.Trackable):
 
   def _convert_anything_to_init(self, raw_init, dim):
     init = raw_init
-    valid_list = [init_ops.Initializer, init_ops_v2.Initializer, Initializer]
+    valid_list = [
+        init_ops.Initializer, init_ops_v2.Initializer,
+        tf.keras.initializers.Initializer
+    ]
     if kinit2 is not None:
       valid_list.append(kinit2.Initializer)
     valid_list = tuple(valid_list)
@@ -741,27 +717,7 @@ class Variable(EmbeddingWeights, base.Trackable):
       else:
         raise ValueError
     except:
-
-      def is_indexable_and_nonempty(obj):
-        has_getitem = hasattr(obj, '__getitem__')
-        is_nonempty = hasattr(obj, '__len__') and len(obj) > 0
-        return has_getitem and is_nonempty
-
-      if isinstance(init, int) or isinstance(init, float):
-        first_element = init
-      elif not isinstance(init, tf.Tensor) and is_indexable_and_nonempty(init):
-        first_element = init[0]
-      else:
-        reshaped_init = array_ops.reshape(init, [-1])
-        size_of_reshaped_init = tf.size(reshaped_init)
-
-        def get_default_value():
-          default_value = 0.0 if self.value_dtype.is_floating else 0
-          return tf.constant(default_value, dtype=self.value_dtype)
-
-        first_element = tf.cond(tf.greater(size_of_reshaped_init, 0),
-                                lambda: reshaped_init[0], get_default_value)
-      init = array_ops.fill([dim], first_element)
+      init = array_ops.fill([dim], array_ops.reshape(init, [-1])[0])
     init = math_ops.cast(init, dtype=self.value_dtype)
     return init
 
@@ -1164,7 +1120,8 @@ class Variable(EmbeddingWeights, base.Trackable):
     Returns:
       List of slot `Variable`s in optimizer.
     """
-    if not isinstance(optimizer, (Optimizer, OptimizerV2, keras_OptimizerV2)):
+    if not isinstance(optimizer,
+                      (Optimizer, OptimizerV2, tf.keras.optimizers.Optimizer)):
       raise TypeError('Expect an optimizer, but get {}'.format(type(optimizer)))
     slots = []
     if hasattr(optimizer, 'get_slot_names'):
@@ -1277,7 +1234,6 @@ def get_variable(
     kv_creator=None,
     restrict_policy=None,
     bp_v2=False,
-    short_file_name=False,
 ):
   """Gets an `Variable` object with this name if it exists,
          or create a new one.
@@ -1321,15 +1277,14 @@ def get_variable(
         parameters by *adding delta* instead of *setting*, which solves the
         race condition problem among workers during backpropagation in
         large-scale distributed asynchronous training.
-      short_file_name: If True, the file name will not use scope name as prefix and create_slots will not
-          use op_name to avoid file name over 255. the default is False to keep the same behavior as before.
+
     Returns:
       A `Variable` object.
     """
+  var_ = None
   scope = variable_scope.get_variable_scope()
   scope_store = variable_scope._get_default_variable_store()
-
-  full_name = scope.name + "/" + name if scope.name and not short_file_name else name
+  full_name = scope.name + "/" + name if scope.name else name
   if full_name in scope_store._vars:
     if scope.reuse is False:
       err_msg = ("Variable %s already exists, disallowed."
@@ -1353,7 +1308,6 @@ def get_variable(
         kv_creator=kv_creator,
         restrict_policy=restrict_policy,
         bp_v2=bp_v2,
-        short_file_name=short_file_name,
     )
     scope_store._vars[full_name] = var_
   return scope_store._vars[full_name]
@@ -1374,8 +1328,7 @@ def embedding_lookup(
     Ids are flattened to a 1d tensor before being passed to embedding_lookup
     then, they are unflattend to match the original ids shape plus an extra
     leading dimension of the size of the embeddings.
-    ids must be unique or call safe_embedding_lookup_sparse in the GPU case
-        if you use HKV hashtable since HKV requires unique key
+
     Args:
       params: A dynamic_embedding.Variable instance.
       ids: A tensor with any shape as same dtype of params.key_dtype.

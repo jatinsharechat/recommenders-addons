@@ -20,12 +20,6 @@ from typing import Union, Callable, List
 import numpy as np
 import tensorflow as tf
 
-try:  # tf version >= 2.16
-  from tf_keras.optimizers import Optimizer as keras_OptimizerV2
-except:
-  # Keras version >= 2.12.0
-  from tensorflow.keras.optimizers import Optimizer as keras_OptimizerV2
-
 Number = Union[
     float,
     int,
@@ -46,7 +40,7 @@ Initializer = Union[None, dict, str, Callable]
 Regularizer = Union[None, dict, str, Callable]
 Constraint = Union[None, dict, str, Callable]
 Activation = Union[None, str, Callable]
-Optimizer = Union[keras_OptimizerV2, str]
+Optimizer = Union[tf.keras.optimizers.Optimizer, str]
 
 TensorLike = Union[
     List[Union[Number, list]],

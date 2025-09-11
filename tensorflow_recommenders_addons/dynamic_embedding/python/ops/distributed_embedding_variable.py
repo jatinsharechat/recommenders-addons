@@ -19,7 +19,6 @@ class DistributedVariableWrapper(EmbeddingWeights,
   def embedding_lookup(self,
                        ids,
                        name=None,
-                       max_norm=None,
-                       return_trainable=False) -> (tf.Tensor, EmbeddingWeights):
+                       max_norm=None) -> (tf.Tensor, EmbeddingWeights):
     raise NotImplementedError("embedding_lookup is not supported in "
                               "DistributedVariableWrapper")

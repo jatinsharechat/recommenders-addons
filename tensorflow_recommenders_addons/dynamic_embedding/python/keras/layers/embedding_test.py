@@ -39,32 +39,22 @@ from tensorflow.python.ops import variables
 from tensorflow.python.platform import test
 from tensorflow.python.training import adam
 try:
-  from tf_keras.optimizers import Adam
+  from tensorflow.keras.optimizers.legacy import Adam
 except:
-  try:
-    from tensorflow.keras.optimizers import Adam
-  except:
-    from tensorflow.keras.optimizers.legacy import Adam
-
-try:
-  from tf_keras import layers, Sequential, optimizers, Model, backend
-  from tf_keras.initializers import RandomNormal, RandomUniform, Ones, Zeros
-except:
-  from tensorflow.keras import layers, Sequential, optimizers, Model, backend
-  from tensorflow.keras.initializers import RandomNormal, RandomUniform, Ones, Zeros
+  from tensorflow.keras.optimizers import Adam
 
 tf.config.set_soft_device_placement(True)
 
 
 def get_sequential_model(emb_t, *args, **kwargs):
-  l0 = layers.InputLayer(input_shape=(None,), dtype=dtypes.int64)
+  l0 = tf.keras.layers.InputLayer(input_shape=(None,), dtype=dtypes.int64)
   l1 = emb_t(*args, **kwargs)
-  l2 = layers.Dense(8, 'relu')
-  l3 = layers.Dense(1, 'sigmoid')
+  l2 = tf.keras.layers.Dense(8, 'relu')
+  l3 = tf.keras.layers.Dense(1, 'sigmoid')
   if emb_t == de.keras.layers.Embedding:
-    model = Sequential([l0, l1, l2, l3])
+    model = tf.keras.Sequential([l0, l1, l2, l3])
   elif emb_t == de.keras.layers.FieldWiseEmbedding:
-    model = Sequential([l0, l1, layers.Flatten(), l2, l3])
+    model = tf.keras.Sequential([l0, l1, tf.keras.layers.Flatten(), l2, l3])
   else:
     raise TypeError('Unsupported embedding layer {}'.format(emb_t))
   return model
@@ -90,7 +80,10 @@ class EmbeddingLayerTest(test.TestCase):
     value_dtypes = [dtypes.float32, dtypes.float64]
     if test_util.is_gpu_available():
       value_dtypes = [dtypes.float32]
-    initializers = [RandomNormal(), RandomUniform()]
+    initializers = [
+        tf.keras.initializers.RandomNormal(),
+        tf.keras.initializers.RandomUniform()
+    ]
     trainable_options = [True, False]
     bp_options = [True, False]
     restrict_policies = [
@@ -122,13 +115,13 @@ class EmbeddingLayerTest(test.TestCase):
   def test_forward(self):
     if not context.executing_eagerly():
       self.skipTest('Only test in eager mode')
-    de_init = RandomNormal(seed=0)
-    dense_init = Ones()
+    de_init = tf.keras.initializers.RandomNormal(seed=0)
+    dense_init = tf.keras.initializers.Ones()
     de_layer = de.keras.layers.Embedding(4, initializer=de_init, name='ve820')
-    tf_layer = layers.Embedding(1000,
-                                4,
-                                embeddings_initializer=dense_init,
-                                name='mt047')
+    tf_layer = tf.keras.layers.Embedding(1000,
+                                         4,
+                                         embeddings_initializer=dense_init,
+                                         name='mt047')
 
     with self.session(use_gpu=test_util.is_gpu_available(),
                       config=default_config):
@@ -144,7 +137,7 @@ class EmbeddingLayerTest(test.TestCase):
   def test_backward(self):
     if not context.executing_eagerly():
       self.skipTest('Only test in eager mode')
-    init = RandomNormal(seed=0)
+    init = tf.keras.initializers.RandomNormal(seed=0)
     model = get_sequential_model(de.keras.layers.Embedding,
                                  4,
                                  initializer=init,
@@ -164,33 +157,10 @@ class EmbeddingLayerTest(test.TestCase):
       model.fit(x, y, verbose=0)
       self.assertAllEqual(emb_layer.params.size(), start)
 
-  def test_backward_adagrad(self):
-    if not context.executing_eagerly():
-      self.skipTest('Only test in eager mode')
-    init = RandomNormal(seed=0)
-    model = get_sequential_model(de.keras.layers.Embedding,
-                                 4,
-                                 initializer=init,
-                                 bp_v2=False,
-                                 name='go582')
-    optmz = optimizers.Adagrad(1E-4)
-    optmz = de.DynamicEmbeddingOptimizer(optmz)
-    emb_layer = model.layers[0]
-    model.compile(optimizer=optmz, loss='binary_crossentropy')
-    start = 0
-    batch_size = 10
-    for i in range(1, 10):
-      x = math_ops.range(start, start + batch_size * i, dtype=dtypes.int64)
-      x = tf.reshape(x, (batch_size, -1))
-      start += batch_size * i
-      y = tf.zeros((batch_size, 1), dtype=dtypes.float32)
-      model.fit(x, y, verbose=0)
-      self.assertAllEqual(emb_layer.params.size(), start)
-
   def test_backward_bp_v2(self):
     if not context.executing_eagerly():
       self.skipTest('Only test in eager mode')
-    init = RandomNormal(seed=0)
+    init = tf.keras.initializers.RandomNormal(seed=0)
     model = get_sequential_model(de.keras.layers.Embedding,
                                  4,
                                  initializer=init,
@@ -217,16 +187,16 @@ class EmbeddingLayerTest(test.TestCase):
     save_path = os.path.join(tempfile.mkdtemp(prefix=save_dir), "hash")
 
     def model_fn(table_device):
-      input_tensor = layers.Input(shape=(1,), dtype=tf.int64)
+      input_tensor = tf.keras.layers.Input(shape=(1,), dtype=tf.int64)
       embedding_out = de.keras.layers.Embedding(
           embedding_size=1,
           key_dtype=tf.int64,
           value_dtype=tf.float32,
-          initializer=RandomNormal(),
+          initializer=tf.keras.initializers.RandomNormal(),
           devices=table_device,
           name='test_keras_save_restore',
       )(input_tensor)
-      model = Model(inputs=input_tensor, outputs=embedding_out)
+      model = tf.keras.Model(inputs=input_tensor, outputs=embedding_out)
       optimizer = Adam(learning_rate=1E-4, amsgrad=False)
       optimizer = de.DynamicEmbeddingOptimizer(optimizer)
       model.compile(optimizer=optimizer)
@@ -243,7 +213,7 @@ class EmbeddingLayerTest(test.TestCase):
     )
     options = tf.saved_model.SaveOptions(namespace_whitelist=['TFRA'])
     model.save(save_path, options=options)
-    backend.clear_session()
+    tf.keras.backend.clear_session()
     del model
     model = model_fn(table_device_)
     model.load_weights(save_path).expect_partial()
@@ -271,14 +241,14 @@ class EmbeddingLayerTest(test.TestCase):
     save_path = os.path.join(tempfile.mkdtemp(prefix=save_dir), "hash")
 
     def model_fn(table_devices):
-      input_tensor = layers.Input(shape=(1,), dtype=tf.int64)
+      input_tensor = tf.keras.layers.Input(shape=(1,), dtype=tf.int64)
       embedding_outs = []
       for t in range(2):
         embedding_out = de.keras.layers.Embedding(
             embedding_size=1,
             key_dtype=tf.int64,
             value_dtype=tf.float32,
-            initializer=RandomNormal(),
+            initializer=tf.keras.initializers.RandomNormal(),
             devices=table_devices,
             name=f'test_keras_save_restore_{t}',
             kv_creator=de.CuckooHashTableCreator(
@@ -288,12 +258,12 @@ class EmbeddingLayerTest(test.TestCase):
           embedding_size=1,
           key_dtype=tf.int64,
           value_dtype=tf.float32,
-          initializer=RandomNormal(),
+          initializer=tf.keras.initializers.RandomNormal(),
           devices=table_devices,
           name='test_keras_save_restore_normal')(input_tensor)
       embedding_outs.append(normal_embedding_out)
       concat = tf.concat(embedding_outs, axis=0)
-      model = Model(inputs=input_tensor, outputs=concat)
+      model = tf.keras.Model(inputs=input_tensor, outputs=concat)
       optimizer = Adam(learning_rate=1E-4, amsgrad=False)
       optimizer = de.DynamicEmbeddingOptimizer(optimizer)
       model.compile(optimizer=optimizer)
@@ -316,7 +286,7 @@ class EmbeddingLayerTest(test.TestCase):
       )
     options = tf.saved_model.SaveOptions(namespace_whitelist=['TFRA'])
     model.save(save_path, options=options)
-    backend.clear_session()
+    tf.keras.backend.clear_session()
     del model
     model = model_fn(table_devices_)
     model.load_weights(save_path).expect_partial()
@@ -329,7 +299,7 @@ class EmbeddingLayerTest(test.TestCase):
       self.assertAllEqual(test_values, np.sort(values, axis=0))
 
     # test expand shards number
-    backend.clear_session()
+    tf.keras.backend.clear_session()
     del model
     shard_num = 5
     table_devices_ = table_device * shard_num
@@ -344,7 +314,7 @@ class EmbeddingLayerTest(test.TestCase):
       self.assertAllEqual(test_values, np.sort(values, axis=0))
 
     # test contracte shards number
-    backend.clear_session()
+    tf.keras.backend.clear_session()
     del model
     shard_num = 2
     table_devices_ = table_device * shard_num
@@ -359,7 +329,7 @@ class EmbeddingLayerTest(test.TestCase):
       self.assertAllEqual(test_values, np.sort(values, axis=0))
 
     # test load all into one shard
-    backend.clear_session()
+    tf.keras.backend.clear_session()
     del model
     shard_num = 1
     table_devices_ = table_device * shard_num
@@ -384,14 +354,14 @@ class EmbeddingLayerTest(test.TestCase):
       table_device = ['/device:CPU:0']
       if test_util.is_gpu_available():
         table_device = ['/device:GPU:0']
-      input_tensor = layers.Input(shape=(1,), dtype=tf.int64)
+      input_tensor = tf.keras.layers.Input(shape=(1,), dtype=tf.int64)
       embedding_outs = []
       for t in range(2):
         embedding_out = de.keras.layers.Embedding(
             embedding_size=1,
             key_dtype=tf.int64,
             value_dtype=tf.float32,
-            initializer=RandomNormal(),
+            initializer=tf.keras.initializers.RandomNormal(),
             devices=table_device,
             name=f'test_keras_save_restore_{t}',
             kv_creator=de.CuckooHashTableCreator(saver=de.FileSystemSaver(
@@ -401,12 +371,12 @@ class EmbeddingLayerTest(test.TestCase):
           embedding_size=1,
           key_dtype=tf.int64,
           value_dtype=tf.float32,
-          initializer=RandomNormal(),
+          initializer=tf.keras.initializers.RandomNormal(),
           devices=table_device,
           name='test_keras_save_restore_normal')(input_tensor)
       embedding_outs.append(normal_embedding_out)
       concat = tf.concat(embedding_outs, axis=0)
-      model = Model(inputs=input_tensor, outputs=concat)
+      model = tf.keras.Model(inputs=input_tensor, outputs=concat)
       optimizer = Adam(learning_rate=1E-4, amsgrad=False)
       optimizer = de.DynamicEmbeddingOptimizer(optimizer)
       model.compile(optimizer=optimizer)
@@ -424,7 +394,7 @@ class EmbeddingLayerTest(test.TestCase):
     keys_shard_size = int(test_size / proc_size)
     models = []
     for i in range(proc_size):
-      backend.clear_session()
+      tf.keras.backend.clear_session()
       models.append(model_fn(proc_size, i))
       for t in range(2):
         params_ = models[i].get_layer(f'test_keras_save_restore_{t}').params
@@ -444,11 +414,11 @@ class EmbeddingLayerTest(test.TestCase):
           models[i].get_layer(
               f'test_keras_save_restore_{t}').params.save_to_file_system(
                   dirpath=de_dir, proc_size=proc_size, proc_rank=i)
-    backend.clear_session()
+    tf.keras.backend.clear_session()
     for i in range(proc_size):
       del models[0]
     for i in range(proc_size):
-      backend.clear_session()
+      tf.keras.backend.clear_session()
       models.append(model_fn(proc_size, i))
       models[i].load_weights(save_path).expect_partial()
     for t in range(2):
@@ -471,7 +441,7 @@ class EmbeddingLayerTest(test.TestCase):
     keys_shard_size = int(test_size / proc_size)
     models = []
     for i in range(proc_size):
-      backend.clear_session()
+      tf.keras.backend.clear_session()
       models.append(model_fn(proc_size, i))
       for t in range(2):
         params_ = models[i].get_layer(f'test_keras_save_restore_{t}').params
@@ -491,12 +461,12 @@ class EmbeddingLayerTest(test.TestCase):
           models[i].get_layer(
               f'test_keras_save_restore_{t}').params.save_to_file_system(
                   dirpath=de_dir, proc_size=proc_size, proc_rank=i)
-    backend.clear_session()
+    tf.keras.backend.clear_session()
     for i in range(proc_size):
       del models[0]
     proc_size = 5
     for i in range(proc_size):
-      backend.clear_session()
+      tf.keras.backend.clear_session()
       models.append(model_fn(proc_size, i))
       models[i].load_weights(save_path).expect_partial()
     for t in range(2):
@@ -519,7 +489,7 @@ class EmbeddingLayerTest(test.TestCase):
     keys_shard_size = int(test_size / proc_size)
     models = []
     for i in range(proc_size):
-      backend.clear_session()
+      tf.keras.backend.clear_session()
       models.append(model_fn(proc_size, i))
       for t in range(2):
         params_ = models[i].get_layer(f'test_keras_save_restore_{t}').params
@@ -539,11 +509,11 @@ class EmbeddingLayerTest(test.TestCase):
           models[i].get_layer(
               f'test_keras_save_restore_{t}').params.save_to_file_system(
                   dirpath=de_dir, proc_size=proc_size, proc_rank=i)
-    backend.clear_session()
+    tf.keras.backend.clear_session()
     for i in range(proc_size):
       del models[0]
     for i in range(proc_size):
-      backend.clear_session()
+      tf.keras.backend.clear_session()
       models.append(model_fn(proc_size, i))
       models[i].load_weights(save_path).expect_partial()
     for t in range(2):
@@ -566,7 +536,7 @@ class EmbeddingLayerTest(test.TestCase):
     keys_shard_size = int(test_size / proc_size)
     models = []
     for i in range(proc_size):
-      backend.clear_session()
+      tf.keras.backend.clear_session()
       models.append(model_fn(proc_size, i))
       for t in range(2):
         params_ = models[i].get_layer(f'test_keras_save_restore_{t}').params
@@ -586,12 +556,12 @@ class EmbeddingLayerTest(test.TestCase):
           models[i].get_layer(
               f'test_keras_save_restore_{t}').params.save_to_file_system(
                   dirpath=de_dir, proc_size=proc_size, proc_rank=i)
-    backend.clear_session()
+    tf.keras.backend.clear_session()
     for i in range(proc_size):
       del models[0]
     proc_size = 2
     for i in range(proc_size):
-      backend.clear_session()
+      tf.keras.backend.clear_session()
       models.append(model_fn(proc_size, i))
       models[i].load_weights(save_path).expect_partial()
     for t in range(2):
@@ -614,7 +584,7 @@ class EmbeddingLayerTest(test.TestCase):
     keys_shard_size = int(test_size / proc_size)
     models = []
     for i in range(proc_size):
-      backend.clear_session()
+      tf.keras.backend.clear_session()
       models.append(model_fn(proc_size, i))
       for t in range(2):
         params_ = models[i].get_layer(f'test_keras_save_restore_{t}').params
@@ -634,11 +604,11 @@ class EmbeddingLayerTest(test.TestCase):
           models[i].get_layer(
               f'test_keras_save_restore_{t}').params.save_to_file_system(
                   dirpath=de_dir, proc_size=proc_size, proc_rank=i)
-    backend.clear_session()
+    tf.keras.backend.clear_session()
     for i in range(proc_size):
       del models[0]
     for i in range(proc_size):
-      backend.clear_session()
+      tf.keras.backend.clear_session()
       models.append(model_fn(proc_size, i))
       models[i].load_weights(save_path).expect_partial()
     for t in range(2):
@@ -661,7 +631,7 @@ class EmbeddingLayerTest(test.TestCase):
     keys_shard_size = int(test_size / proc_size)
     models = []
     for i in range(proc_size):
-      backend.clear_session()
+      tf.keras.backend.clear_session()
       models.append(model_fn(proc_size, i))
       for t in range(2):
         params_ = models[i].get_layer(f'test_keras_save_restore_{t}').params
@@ -681,7 +651,7 @@ class EmbeddingLayerTest(test.TestCase):
           models[i].get_layer(
               f'test_keras_save_restore_{t}').params.save_to_file_system(
                   dirpath=de_dir, proc_size=proc_size, proc_rank=i)
-    backend.clear_session()
+    tf.keras.backend.clear_session()
     for i in range(proc_size):
       del models[0]
     proc_size = 1
@@ -689,7 +659,7 @@ class EmbeddingLayerTest(test.TestCase):
     total_keys = []
     total_values = []
     for i in range(proc_size):
-      backend.clear_session()
+      tf.keras.backend.clear_session()
       models.append(model_fn(proc_size, i))
       models[i].load_weights(save_path).expect_partial()
     for t in range(2):
@@ -714,25 +684,25 @@ class SquashedEmbeddingLayerTest(test.TestCase):
   def test_forward(self):
     if not context.executing_eagerly():
       self.skipTest('Only test in eager mode')
-    init = Zeros()
+    init = tf.keras.initializers.Zeros()
     de_layer = de.keras.layers.SquashedEmbedding(2,
                                                  initializer=init,
-                                                 key_dtype=dtypes.int64,
+                                                 key_dtype=dtypes.int32,
                                                  value_dtype=dtypes.float32,
                                                  name='tr423')
-    dense_init = Ones()
-    tf_layer = layers.Embedding(100,
-                                2,
-                                embeddings_initializer=dense_init,
-                                name='mt047')
+    dense_init = tf.keras.initializers.Ones()
+    tf_layer = tf.keras.layers.Embedding(100,
+                                         2,
+                                         embeddings_initializer=dense_init,
+                                         name='mt047')
 
-    preset_ids = constant_op.constant([3, 0, 1], dtype=dtypes.int64)
+    preset_ids = constant_op.constant([3, 0, 1], dtype=dtypes.int32)
     preset_values = constant_op.constant([[1, 1], [1, 1], [1, 1]],
                                          dtype=dtypes.float32)
     de_layer.params.upsert(preset_ids, preset_values)
-    de_ids = constant_op.constant([3, 0, 1, 2], dtype=tf.int64)
+    de_ids = constant_op.constant([3, 0, 1, 2], dtype=tf.int32)
     output = de_layer(de_ids)
-    tf_ids = constant_op.constant([3, 0, 1], dtype=tf.int64)
+    tf_ids = constant_op.constant([3, 0, 1], dtype=tf.int32)
     expected = tf_layer(tf_ids)
     expected = tf.reduce_sum(expected, axis=0)
     self.assertAllEqual(output, expected)
@@ -753,7 +723,10 @@ class FieldWiseEmbeddingLayerTest(test.TestCase):
     value_dtypes = [dtypes.float32, dtypes.float64]
     if test_util.is_gpu_available():
       value_dtypes = [dtypes.float32]
-    initializers = [RandomNormal(), RandomUniform()]
+    initializers = [
+        tf.keras.initializers.RandomNormal(),
+        tf.keras.initializers.RandomUniform()
+    ]
     trainable_options = [True, False]
     bp_options = [True, False]
     restrict_policies = [
@@ -795,7 +768,7 @@ class FieldWiseEmbeddingLayerTest(test.TestCase):
     if not context.executing_eagerly():
       self.skipTest('Only test in eager mode')
 
-    init = RandomNormal(seed=0)
+    init = tf.keras.initializers.RandomNormal(seed=0)
     ids = math_ops.range(200, dtype=dtypes.int64)
     ids = tf.reshape(ids, (25, 8))
 
@@ -807,10 +780,10 @@ class FieldWiseEmbeddingLayerTest(test.TestCase):
                                                   slot_map_fn,
                                                   initializer=init,
                                                   name='fr010')
-    tf_layer = layers.Embedding(1000,
-                                4,
-                                embeddings_initializer=init,
-                                name='xz774')
+    tf_layer = tf.keras.layers.Embedding(1000,
+                                         4,
+                                         embeddings_initializer=init,
+                                         name='xz774')
     with self.session(use_gpu=test_util.is_gpu_available(),
                       config=default_config):
       self.evaluate(variables.global_variables_initializer())
@@ -825,7 +798,7 @@ class FieldWiseEmbeddingLayerTest(test.TestCase):
     def slot_map_fn(x):
       return tf.math.floormod(x, 2)
 
-    init = RandomNormal(seed=0)
+    init = tf.keras.initializers.RandomNormal(seed=0)
     model = get_sequential_model(de.keras.layers.FieldWiseEmbedding,
                                  4,
                                  2,
@@ -855,7 +828,7 @@ class FieldWiseEmbeddingLayerTest(test.TestCase):
     def slot_map_fn(x):
       return tf.math.floormod(x, 2)
 
-    init = RandomNormal(seed=0)
+    init = tf.keras.initializers.RandomNormal(seed=0)
     model = get_sequential_model(de.keras.layers.FieldWiseEmbedding,
                                  4,
                                  2,
@@ -884,7 +857,7 @@ class FieldWiseEmbeddingLayerTest(test.TestCase):
     save_dir = tempfile.mkdtemp(prefix='/tmp/')
     options = tf.saved_model.SaveOptions(namespace_whitelist=['TFRA'])
     model.save(save_dir, signatures=None, options=options)
-    copied_init = RandomNormal(seed=0)
+    copied_init = tf.keras.initializers.RandomNormal(seed=0)
     new_model = get_sequential_model(de.keras.layers.FieldWiseEmbedding,
                                      4,
                                      2,
@@ -932,22 +905,23 @@ class FieldWiseEmbeddingLayerTest(test.TestCase):
     def slot_map_fn(x):
       return tf.math.floormod(x, 2)
 
-    init = RandomNormal(seed=0)
+    init = tf.keras.initializers.RandomNormal(seed=0)
 
-    class MyModel(Model):
+    class MyModel(tf.keras.Model):
 
       def __init__(self):
         super(MyModel, self).__init__()
-        self.l0 = layers.InputLayer(input_shape=(None,), dtype=tf.int64)
+        self.l0 = tf.keras.layers.InputLayer(input_shape=(None,),
+                                             dtype=tf.int64)
         self.l1 = de.keras.layers.FieldWiseEmbedding(4,
                                                      2,
                                                      slot_map_fn,
                                                      bp_v2=False,
                                                      initializer=init,
                                                      name='sl337')
-        self.l2 = layers.Flatten()
-        self.l3 = layers.Dense(32, 'relu')
-        self.l4 = layers.Dense(1, 'sigmoid')
+        self.l2 = tf.keras.layers.Flatten()
+        self.l3 = tf.keras.layers.Dense(32, 'relu')
+        self.l4 = tf.keras.layers.Dense(1, 'sigmoid')
 
       def call(self, x):
         return self.l4(self.l3(self.l2(self.l1(self.l0(x)))))

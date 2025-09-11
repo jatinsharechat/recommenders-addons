@@ -16,29 +16,28 @@
 """patch on optimizers"""
 
 import functools
-from packaging import version
 import six
 
 from tensorflow_recommenders_addons import dynamic_embedding as de
 
-from tensorflow import version as tf_version
 from tensorflow.python.distribute import central_storage_strategy
-if version.parse(tf_version.VERSION) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.distribute import distribute_lib as distribute_ctx
-else:
+  assert hasattr(distribute_ctx, 'has_strategy')
+except:
   from tensorflow.python.distribute import distribution_strategy_context as distribute_ctx
 from tensorflow.python.distribute import parameter_server_strategy
 from tensorflow.python.distribute import parameter_server_strategy_v2
 from tensorflow.python.eager import context
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
-if version.parse(tf_version.VERSION) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.framework.tensor import Tensor
-else:
+except:
   from tensorflow.python.framework.ops import Tensor
-if version.parse(tf_version.VERSION) >= version.parse("2.13"):
+try:  # tf version >= 2.13.0
   from tensorflow.python.framework.indexed_slices import IndexedSlices
-else:
+except:
   from tensorflow.python.framework.ops import IndexedSlices
 from tensorflow.python.keras import backend
 from tensorflow.python.keras import initializers
@@ -47,9 +46,9 @@ from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import variables
 from tensorflow.python.ops import variable_scope
-if version.parse(tf_version.VERSION) >= version.parse("2.14"):
+try:  # tf version >= 2.14.0
   from tensorflow.python.ops.cond import cond
-else:
+except:
   from tensorflow.python.ops.control_flow_ops import cond
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import optimizer
@@ -58,35 +57,25 @@ try:
   from tensorflow.python.distribute.sharded_variable import ShardedVariable
 except:
   ShardedVariable = type('Dummy', (object,), {})
-if version.parse(tf_version.VERSION) >= version.parse("2.10"):
+try:  # tf version >= 2.10.0
   from tensorflow.python.trackable import base as trackable
-else:
+except:
   from tensorflow.python.training.tracking import base as trackable
 from tensorflow.python.keras.optimizer_v2 import optimizer_v2 as optimizer_v2_legacy
 from tensorflow.python.keras.optimizer_v2 import utils as optimizer_v2_legacy_utils
-
-if version.parse(tf_version.VERSION) >= version.parse("2.16"):
-  try:  # independently import tf_keras
-    from tf_keras.optimizers.legacy import Optimizer as keras_OptimizerV2_legacy
-    from tf_keras.optimizers import Optimizer as keras_OptimizerV2
-  except:
-    from tensorflow.python.keras.optimizers import Optimizer as keras_OptimizerV2_legacy
-    from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2 as keras_OptimizerV2
-elif version.parse(tf_version.VERSION) >= version.parse("2.12"):
+try:  # Keras version >= 2.12.0
   from tensorflow.keras.optimizers.legacy import Optimizer as keras_OptimizerV2_legacy
   from tensorflow.keras.optimizers import Optimizer as keras_OptimizerV2
-else:
+except:
   from tensorflow.keras.optimizers import Optimizer as keras_OptimizerV2_legacy
   keras_OptimizerV2 = keras_OptimizerV2_legacy
-
 from tensorflow.python.eager import tape
 from tensorflow.python.distribute import values_util as distribute_values_util
 from tensorflow.python.distribute import distribute_utils
 from tensorflow.python.ops.variables import VariableAggregation
-if version.parse(tf_version.VERSION) >= version.parse("2.11"):
-  # The data_structures has been moved to the new package in tf 2.11
+try:  # The data_structures has been moved to the new package in tf 2.11
   from tensorflow.python.trackable import data_structures
-else:
+except:
   from tensorflow.python.training.tracking import data_structures
 from tensorflow_recommenders_addons.dynamic_embedding.python.ops.dynamic_embedding_variable import \
   TrainableWrapperDistributedPolicy
@@ -109,9 +98,8 @@ def DynamicEmbeddingOptimizer(self, bp_v2=False, synchronous=False, **kwargs):
     bp_v2: If True, updating parameters will use updating instead of setting, which solves
       the race condition problem among workers during back-propagation in large-scale
       distributed asynchronous training. Reference: https://www.usenix.org/system/files/osdi20-jiang.pdf
-    synchronous: If True, we will use DE custom all-reduce method(now implemented by horovod) to merge the dense grad
-      of model parameter, the default reduce method is SUM. If False, we should use
-      For TrainableWrapper's grad, keep same with before.
+    synchronous: If True, we will use DE custom all-reduce method(now implemented by horovod) to merge the dense grad of model parameter, 
+      the default reduce method is SUM. For TrainableWrapper's grad, keep same with before.
 
   Example usage:
 
@@ -879,11 +867,7 @@ def create_slots(variable, init, slot_name, op_name, bp_v2):
     params_var_ = primary.params
 
   scope_store = variable_scope._get_default_variable_store()
-  if params_var_.short_file_name:
-    full_name = params_var_.name + "/" + slot_name
-  else:
-    full_name = params_var_.name + "/" + op_name + "/" + slot_name
-
+  full_name = params_var_.name + "/" + op_name + "/" + slot_name
   if full_name not in scope_store._vars:
     with ops.colocate_with(primary, ignore_existing=True):
       slot_variable_ = de.Variable(
